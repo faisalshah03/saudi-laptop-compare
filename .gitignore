@@ -1,0 +1,50 @@
+# Environment
+.env
+.env.local
+*.zshrc
+
+# API Keys
+FIRECRAWL_API_KEY
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data - keep merged_products.json + latest Excel committed so the deployed
+# dashboard has real data to show immediately. Ignore bulky per-scrape raw dumps.
+data/raw_products.json
+data/jarir_sample.json
+data/amazon_sample.json
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# Testing
+.pytest_cache/
+htmlcov/
+
+# Debug dumps
+*.html
+*.md.bak
+amazon_raw.md
+jarir_raw.html
+
+# Ruflo/claude-flow local state
+.claude-flow/
