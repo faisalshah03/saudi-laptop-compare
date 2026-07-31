@@ -129,6 +129,22 @@ def main():
     # Sidebar filters
     st.sidebar.markdown("## 🔍 Filters")
 
+    # Category filter (Laptop / Desktop)
+    if 'category' in df.columns:
+        categories = ['All'] + sorted(df['category'].dropna().unique().tolist())
+        selected_category = st.sidebar.selectbox("Category", categories)
+
+        if selected_category != 'All':
+            df = df[df['category'] == selected_category]
+
+    # Subtype filter (Gaming / 2-in-1 / Business / etc.)
+    if 'subtype' in df.columns:
+        subtypes = ['All'] + sorted(df['subtype'].dropna().unique().tolist())
+        selected_subtype = st.sidebar.selectbox("Subtype", subtypes)
+
+        if selected_subtype != 'All':
+            df = df[df['subtype'] == selected_subtype]
+
     # Brand filter
     brands = ['All'] + sorted(df['brand'].dropna().unique().tolist())
     selected_brand = st.sidebar.selectbox("Brand", brands)
@@ -195,10 +211,29 @@ def main():
     if not df.empty:
         # Select columns to display
         display_cols = [
-            'brand', 'model_name', 'processor', 'ram', 'storage',
+            'title', 'category', 'subtype', 'brand', 'model_name',
+            'processor', 'ram', 'storage', 'graphics_card',
             'amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price',
             'best_price', 'best_price_platform'
         ]
+
+        column_labels = {
+            'title': 'Title',
+            'category': 'Category',
+            'subtype': 'Subtype',
+            'brand': 'Brand',
+            'model_name': 'Model',
+            'processor': 'Processor',
+            'ram': 'RAM',
+            'storage': 'Storage',
+            'graphics_card': 'GPU',
+            'amazon_sa_price': 'Amazon.sa',
+            'jarir_price': 'Jarir',
+            'extra_price': 'Extra',
+            'noon_price': 'Noon',
+            'best_price': 'Best Price',
+            'best_price_platform': 'Best On',
+        }
 
         available_cols = [col for col in display_cols if col in df.columns]
         display_df = df[available_cols].copy()
@@ -210,6 +245,9 @@ def main():
                 formatted_df[col] = formatted_df[col].apply(
                     lambda x: f"₪{x:,.0f}" if pd.notna(x) else "N/A"
                 )
+
+        formatted_df = formatted_df.fillna('N/A')
+        formatted_df = formatted_df.rename(columns=column_labels)
 
         st.dataframe(
             formatted_df,

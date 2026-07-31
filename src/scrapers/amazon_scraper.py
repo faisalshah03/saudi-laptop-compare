@@ -36,7 +36,7 @@ class AmazonScraper:
         except ValueError:
             return None
 
-    def parse_products_from_markdown(self, markdown: str) -> List[Dict[str, Any]]:
+    def parse_products_from_markdown(self, markdown: str, category: str = None) -> List[Dict[str, Any]]:
         """
         Parse products from Amazon.sa markdown output.
 
@@ -100,6 +100,7 @@ class AmazonScraper:
 
             product = {
                 'source_platform': self.platform_name,
+                'category': category,
                 'product_url': product_url,
                 'raw_title': title,
                 'price': price,
@@ -159,30 +160,52 @@ class AmazonScraper:
 
         return specs
 
-    def scrape_listing(self, url: str, category: str, max_products: int = 50) -> List[Dict[str, Any]]:
-        """Scrape a product listing page."""
+    def scrape_listing(self, url: str, category: str, max_products: int = 50,
+                       max_pages: int = 5) -> List[Dict[str, Any]]:
+        """Scrape a product listing page, following pagination (&page=N)
+        until max_products is reached or a page yields no new products."""
         print(f"\n{'='*60}")
         print(f"Scraping Amazon.sa {category}: {url}")
         print(f"{'='*60}")
 
-        markdown = self.firecrawl.extract_products_from_page(url)
+        category_products = []
+        seen_urls = set()
+        separator = '&' if '?' in url else '?'
 
-        if not markdown:
-            print(f"[Amazon] Failed to fetch {category} page")
-            return []
+        for page in range(1, max_pages + 1):
+            page_url = url if page == 1 else f"{url}{separator}page={page}"
 
-        print(f"[Amazon] Got content ({len(markdown)} chars), parsing...")
-        products = self.parse_products_from_markdown(markdown)
-        products = products[:max_products]
+            markdown = self.firecrawl.extract_products_from_page(page_url)
 
-        self.products.extend(products)
-        return products
+            if not markdown:
+                print(f"[Amazon] Page {page}: failed to fetch, stopping pagination")
+                break
+
+            print(f"[Amazon] Page {page}: got content ({len(markdown)} chars), parsing...")
+            page_products = self.parse_products_from_markdown(markdown, category=category)
+
+            new_products = [p for p in page_products if p['product_url'] not in seen_urls]
+
+            if not new_products:
+                print(f"[Amazon] Page {page}: no new products, stopping pagination")
+                break
+
+            for p in new_products:
+                seen_urls.add(p['product_url'])
+            category_products.extend(new_products)
+
+            if len(category_products) >= max_products:
+                break
+
+        category_products = category_products[:max_products]
+        self.products.extend(category_products)
+        return category_products
 
     def scrape_laptops(self, max_products: int = 50) -> List[Dict[str, Any]]:
         """Scrape Amazon.sa laptops listing."""
         return self.scrape_listing(
             PLATFORMS['amazon_sa']['laptop_url'],
-            'Laptops',
+            'Laptop',
             max_products
         )
 
@@ -190,7 +213,7 @@ class AmazonScraper:
         """Scrape Amazon.sa desktop computers listing."""
         return self.scrape_listing(
             PLATFORMS['amazon_sa']['desktop_url'],
-            'Desktops',
+            'Desktop',
             max_products
         )
 

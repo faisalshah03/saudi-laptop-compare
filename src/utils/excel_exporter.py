@@ -17,24 +17,27 @@ class ExcelExporter:
     # Column definitions
     COLUMNS = [
         ('A', 'master_sku', 'Master SKU'),
-        ('B', 'brand', 'Brand'),
-        ('C', 'model_name', 'Model Name'),
-        ('D', 'model_number', 'Model Number'),
-        ('E', 'processor', 'Processor'),
-        ('F', 'ram', 'RAM'),
-        ('G', 'storage', 'Storage'),
-        ('H', 'graphics_card', 'Graphics Card'),
-        ('I', 'amazon_sa_price', 'Amazon.sa (SAR)'),
-        ('J', 'jarir_price', 'Jarir (SAR)'),
-        ('K', 'extra_price', 'Extra.com (SAR)'),
-        ('L', 'noon_price', 'Noon.com (SAR)'),
-        ('M', 'best_price', 'Best Price (SAR)'),
-        ('N', 'best_price_platform', 'Best on Platform'),
-        ('O', 'amazon_sa_link', 'Amazon Link'),
-        ('P', 'jarir_link', 'Jarir Link'),
-        ('Q', 'extra_link', 'Extra Link'),
-        ('R', 'noon_link', 'Noon Link'),
-        ('S', 'last_updated', 'Last Updated'),
+        ('B', 'title', 'Title'),
+        ('C', 'category', 'Category'),
+        ('D', 'subtype', 'Subtype'),
+        ('E', 'brand', 'Brand'),
+        ('F', 'model_name', 'Model Name'),
+        ('G', 'model_number', 'Model Number'),
+        ('H', 'processor', 'Processor'),
+        ('I', 'ram', 'RAM'),
+        ('J', 'storage', 'Storage'),
+        ('K', 'graphics_card', 'Graphics Card'),
+        ('L', 'amazon_sa_price', 'Amazon.sa (SAR)'),
+        ('M', 'jarir_price', 'Jarir (SAR)'),
+        ('N', 'extra_price', 'Extra.com (SAR)'),
+        ('O', 'noon_price', 'Noon.com (SAR)'),
+        ('P', 'best_price', 'Best Price (SAR)'),
+        ('Q', 'best_price_platform', 'Best on Platform'),
+        ('R', 'amazon_sa_link', 'Amazon Link'),
+        ('S', 'jarir_link', 'Jarir Link'),
+        ('T', 'extra_link', 'Extra Link'),
+        ('U', 'noon_link', 'Noon Link'),
+        ('V', 'last_updated', 'Last Updated'),
     ]
 
     def __init__(self, output_path: str):
@@ -63,13 +66,14 @@ class ExcelExporter:
         ws.freeze_panes = 'A2'
 
         # Auto-filter
-        ws.auto_filter.ref = f'A1:S{ws.max_row}'
+        ws.auto_filter.ref = f'A1:V{ws.max_row}'
 
         # Set column widths
         column_widths = {
-            'A': 15, 'B': 12, 'C': 18, 'D': 12, 'E': 22, 'F': 10, 'G': 12,
-            'H': 18, 'I': 14, 'J': 14, 'K': 14, 'L': 14, 'M': 14, 'N': 16,
-            'O': 30, 'P': 30, 'Q': 30, 'R': 30, 'S': 18
+            'A': 18, 'B': 40, 'C': 10, 'D': 16, 'E': 12, 'F': 18, 'G': 12,
+            'H': 22, 'I': 10, 'J': 12, 'K': 18, 'L': 14, 'M': 14, 'N': 14,
+            'O': 14, 'P': 14, 'Q': 16, 'R': 30, 'S': 30, 'T': 30, 'U': 30,
+            'V': 18
         }
 
         for col, width in column_widths.items():
@@ -135,7 +139,7 @@ class ExcelExporter:
 
         # Set up auto-filter
         max_row = len(products) + 1
-        ws.auto_filter.ref = f'A1:S{max_row}'
+        ws.auto_filter.ref = f'A1:V{max_row}'
 
     def create_raw_data_sheet(self, raw_products: List[Dict]):
         """Create raw data sheet for reference."""

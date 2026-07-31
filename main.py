@@ -35,20 +35,23 @@ def phase_1_scrape() -> list:
     all_products = []
 
     # Scrape Jarir
+    # Note: Jarir's listing pages don't support URL-based pagination (?p=N
+    # returns empty) - only the first page's worth of products (~12/category)
+    # can be collected until we add scroll/interaction-based scraping.
     print("📍 Scraping Jarir.com...")
     try:
         jarir = JarirScraper()
-        jarir_products = jarir.scrape_all(max_per_category=20)
+        jarir_products = jarir.scrape_all(max_per_category=30)
         print(f"✓ Jarir: {len(jarir_products)} products")
         all_products.extend(jarir_products)
     except Exception as e:
         print(f"✗ Jarir Error: {e}")
 
-    # Scrape Amazon.sa
+    # Scrape Amazon.sa (supports true &page=N pagination, both categories)
     print("\n📍 Scraping Amazon.sa...")
     try:
         amazon = AmazonScraper()
-        amazon_products = amazon.scrape_laptops(max_products=25)
+        amazon_products = amazon.scrape_all(max_per_category=60)
         print(f"✓ Amazon.sa: {len(amazon_products)} products")
         all_products.extend(amazon_products)
     except Exception as e:
