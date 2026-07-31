@@ -18,9 +18,14 @@ from config.config import FIRECRAWL_API_KEY, OUTPUT_DIR, DATA_DIR
 from scrapers.jarir_scraper import JarirScraper
 from scrapers.amazon_scraper import AmazonScraper
 from scrapers.noon_scraper import NoonScraper
+from scrapers.extra_scraper import ExtraScraper
 from utils.product_matcher import ProductMatcher
 from utils.excel_exporter import ExcelExporter
 from utils.gap_analyzer import NoonGapAnalyzer
+from utils.health_check import (
+    check_platform_health, compute_field_coverage, compute_merge_stats,
+    log_run, PlatformScrapeFailure
+)
 
 
 def print_section(title: str):
@@ -30,49 +35,68 @@ def print_section(title: str):
     print(f"{'='*70}\n")
 
 
-def phase_1_scrape() -> list:
-    """Phase 1: Scrape all platforms for laptop and desktop data."""
+def phase_1_scrape() -> tuple:
+    """Phase 1: Scrape all platforms for laptop and desktop data.
+
+    Runs a health check per platform after scraping (see health_check.py):
+    a platform returning ~zero products raises PlatformScrapeFailure and
+    stops the pipeline (both its primary method and any fallback failed -
+    shipping a run silently missing an entire platform is worse than
+    failing loudly). A platform returning a low-but-nonzero count is
+    logged as 'degraded' and the pipeline continues.
+    """
     print_section("PHASE 1: DATA EXTRACTION")
 
     all_products = []
+    platform_counts = {}
+    platform_health = {}
+
+    def run_scraper(label, fn):
+        """Attempt a scraper independently - one platform crashing
+        outright shouldn't prevent the others from being attempted. Any
+        exception collapses to a count of 0, which the health check will
+        then correctly classify as a hard failure."""
+        print(f"\n📍 Scraping {label}...")
+        try:
+            products = fn()
+            print(f"✓ {label}: {len(products)} products")
+            return products
+        except Exception as e:
+            print(f"✗ {label} raised an exception: {e}")
+            return []
 
     # Scrape Jarir (via their real Constructor.io-backed search API - see
     # jarir_scraper.py docstring for why the old category-page approach
     # only ever surfaced ~12 curated products instead of the real catalog)
-    print("📍 Scraping Jarir.com...")
-    try:
-        jarir = JarirScraper()
-        jarir_products = jarir.scrape_all(max_per_category=1000)
-        print(f"✓ Jarir: {len(jarir_products)} products")
-        all_products.extend(jarir_products)
-    except Exception as e:
-        print(f"✗ Jarir Error: {e}")
+    jarir_products = run_scraper('Jarir.com', lambda: JarirScraper().scrape_all(max_per_category=1000))
+    platform_counts['Jarir'] = len(jarir_products)
+    all_products.extend(jarir_products)
 
     # Scrape Amazon.sa (supports true &page=N pagination, both categories)
-    print("\n📍 Scraping Amazon.sa...")
-    try:
-        amazon = AmazonScraper()
-        amazon_products = amazon.scrape_all(max_per_category=60)
-        print(f"✓ Amazon.sa: {len(amazon_products)} products")
-        all_products.extend(amazon_products)
-    except Exception as e:
-        print(f"✗ Amazon.sa Error: {e}")
+    amazon_products = run_scraper('Amazon.sa', lambda: AmazonScraper().scrape_all(max_per_category=60))
+    platform_counts['Amazon.sa'] = len(amazon_products)
+    all_products.extend(amazon_products)
 
     # Scrape Noon.com (Saudi) - requires Firecrawl stealth proxy, see
     # noon_scraper.py docstring for why
-    print("\n📍 Scraping Noon.com (Saudi)...")
-    try:
-        noon = NoonScraper()
-        noon_products = noon.scrape_all(max_per_category=200)
-        print(f"✓ Noon: {len(noon_products)} products")
-        all_products.extend(noon_products)
-    except Exception as e:
-        print(f"✗ Noon Error: {e}")
+    noon_products = run_scraper('Noon.com (Saudi)', lambda: NoonScraper().scrape_all(max_per_category=200))
+    platform_counts['Noon'] = len(noon_products)
+    all_products.extend(noon_products)
 
-    # TODO: Add Extra.com scraper
+    # Scrape Extra.com (Saudi) - no bot-blocking, just needs a longer
+    # Firecrawl wait_for the client-rendered product grid to hydrate
+    extra_products = run_scraper('Extra.com', lambda: ExtraScraper().scrape_all(max_per_category=100))
+    platform_counts['Extra'] = len(extra_products)
+    all_products.extend(extra_products)
+
+    # Health checks run after all platforms have been attempted, so a
+    # hard-fail on one platform still reports what happened with the
+    # others rather than aborting mid-scrape with no visibility.
+    for platform, count in platform_counts.items():
+        platform_health[platform] = check_platform_health(platform, count)
 
     print(f"\n✓ Phase 1 Complete: {len(all_products)} total products scraped\n")
-    return all_products
+    return all_products, platform_counts, platform_health
 
 
 def phase_2_merge(raw_products: list) -> dict:
@@ -154,9 +178,13 @@ def main():
     print("  Amazon.sa | Jarir.com | Extra.com | Noon.com")
     print("="*70)
 
+    log_path = f'{DATA_DIR}/run_log.jsonl'
+    platform_counts, platform_health = {}, {}
+
     try:
-        # Phase 1: Scrape
-        raw_products = phase_1_scrape()
+        # Phase 1: Scrape (raises PlatformScrapeFailure if any platform's
+        # primary + fallback both produced ~zero products)
+        raw_products, platform_counts, platform_health = phase_1_scrape()
 
         if not raw_products:
             print("❌ No products scraped. Exiting.")
@@ -171,11 +199,12 @@ def main():
 
         # Phase 2: Merge
         unified_products = phase_2_merge(raw_products)
+        unified_list = list(unified_products.values())
 
         # Save merged products
         merged_file = f'{DATA_DIR}/merged_products.json'
         with open(merged_file, 'w', encoding='utf-8') as f:
-            json.dump(list(unified_products.values()), f, ensure_ascii=False, indent=2, default=str)
+            json.dump(unified_list, f, ensure_ascii=False, indent=2, default=str)
         print(f"💾 Merged data saved: {merged_file}")
 
         # Phase 2b: Noon gap analysis
@@ -192,6 +221,14 @@ def main():
         # Phase 4: Dashboard
         phase_4_dashboard()
 
+        # Structured run log (append-only history, separate from the
+        # data/*.json snapshots which get overwritten each run)
+        field_coverage = compute_field_coverage(
+            unified_list, ['title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage', 'graphics_card']
+        )
+        merge_stats = compute_merge_stats(unified_list, raw_products)
+        log_run(log_path, platform_counts, platform_health, field_coverage, merge_stats, gap_summary, status='success')
+
         # Summary
         print_section("✅ PIPELINE COMPLETE")
         print(f"📊 Total Products: {len(unified_products)}")
@@ -200,11 +237,19 @@ def main():
         print(f"📊 Raw Data: {raw_file}")
         print(f"📊 Merged Data: {merged_file}")
         print(f"📊 Gap Analysis: {gap_file}")
+        print(f"📊 Field coverage: {field_coverage}")
+        print(f"📊 Merge stats: {merge_stats}")
+
+    except PlatformScrapeFailure as e:
+        print(f"\n🛑 PIPELINE HALTED (platform health check failed): {e}")
+        log_run(log_path, platform_counts, platform_health, {}, {}, status='failed', error=str(e))
+        sys.exit(1)
 
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
         traceback.print_exc()
+        log_run(log_path, platform_counts, platform_health, {}, {}, status='failed', error=str(e))
         sys.exit(1)
 
 

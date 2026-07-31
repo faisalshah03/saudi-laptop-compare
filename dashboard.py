@@ -140,13 +140,18 @@ def main():
         """)
         return
 
-    tab_prices, tab_gap = st.tabs(["📊 Price Comparison", "🎯 Noon Assortment Gap"])
+    tab_prices, tab_gap, tab_search = st.tabs(
+        ["📊 Price Comparison", "🎯 Noon Assortment Gap", "🔎 Product Search"]
+    )
 
     with tab_prices:
         render_price_comparison(df)
 
     with tab_gap:
         render_gap_analysis()
+
+    with tab_search:
+        render_product_search(df)
 
 
 def render_price_comparison(df):
@@ -326,7 +331,7 @@ def render_price_comparison(df):
     st.markdown("---")
     st.markdown("### ℹ️ About")
     st.markdown("""
-    - **Data Source**: Amazon.sa, Jarir.com, Noon.com (Extra.com coming soon)
+    - **Data Source**: Amazon.sa, Jarir.com, Noon.com, Extra.com
     - **Categories**: Laptops & Desktops
     - **Access this dashboard from any device** at this page's URL
     """)
@@ -404,6 +409,74 @@ def render_gap_analysis():
         "but not the exact SKU - a partial gap.  \n"
         "**Not Available**: No reasonable match found on Noon - a genuine assortment gap."
     )
+
+
+def render_product_search(df):
+    """Search for a specific product by title/model/brand/config.
+    Step 1 searches the already-scraped catalog (instant, free). Step 2
+    is an opt-in live search that hits each platform's real search
+    endpoint directly - slower, and consumes Firecrawl credits for the
+    platforms that need it (Amazon, Noon, Extra), so it only runs when
+    the user explicitly asks for it."""
+    st.markdown("## 🔎 Search for a Specific Product")
+    st.markdown(
+        "Type a title, model name, model number, or configuration (e.g. "
+        "\"Dell Latitude 7440\", \"i7 16GB 512GB\", \"MacBook Air M5\")."
+    )
+
+    query = st.text_input("Search query", key="product_search_query", placeholder="e.g. ThinkPad T14 16GB")
+
+    if not query:
+        st.info("Enter a search term above to get started.")
+        return
+
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).parent / 'src'))
+    from utils.live_search import search_local
+
+    st.markdown("### 📚 Results from existing scraped data")
+    local_results = search_local(query, df.to_dict('records'), max_results=30)
+
+    if local_results:
+        local_df = pd.DataFrame(local_results)
+        display_cols = [
+            'title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage',
+            'amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price', 'best_price'
+        ]
+        available_cols = [c for c in display_cols if c in local_df.columns]
+        st.dataframe(local_df[available_cols].fillna('N/A'), use_container_width=True, height=350)
+    else:
+        st.warning("No matches in the existing scraped catalog.")
+
+    st.markdown("---")
+    st.markdown("### 🌐 Live Search (checks the actual websites right now)")
+    st.caption(
+        "Slower (10-30s) and uses live scraping credits - only runs when you click the button. "
+        "Useful when the catalog above doesn't have what you're looking for, or you want "
+        "current live prices/stock for a specific item."
+    )
+
+    if st.button("🔍 Search Live Across All Platforms"):
+        with st.spinner(f"Searching Jarir, Amazon.sa, Noon, and Extra for \"{query}\"..."):
+            from utils.live_search import search_live
+            try:
+                live_results = search_live(query, max_per_platform=5)
+            except Exception as e:
+                st.error(f"Live search failed: {e}")
+                live_results = {}
+
+        for platform, products in live_results.items():
+            st.markdown(f"**{platform}** ({len(products)} results)")
+            if products:
+                rows = [{
+                    'Title': p.get('raw_title', p.get('title', '')),
+                    'Price (SAR)': p.get('price'),
+                    'Link': p.get('product_url'),
+                } for p in products]
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, height=min(250, 50 + 35 * len(rows)))
+            else:
+                st.caption("No results.")
 
 
 if __name__ == '__main__':

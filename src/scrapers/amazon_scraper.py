@@ -1,6 +1,8 @@
 """Amazon.sa Laptop & Desktop Scraper"""
 import json
 import re
+import random
+import time
 from datetime import datetime
 from typing import List, Dict, Any
 import sys
@@ -10,6 +12,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config.config import FIRECRAWL_API_KEY, PLATFORMS, TIMESTAMP
 from utils.firecrawl_helper import FirecrawlHelper
+
+
+# Terms that mark a search hit as an accessory rather than a genuine
+# laptop/desktop, even though it matched the keyword search - these
+# would otherwise poison brand/spec extraction (e.g. a "USB-C Hub for
+# Dell HP Lenovo Laptops" listing incorrectly tagging brand="HP").
+ACCESSORY_TERMS = [
+    'bag', 'sleeve', 'case', 'cover', 'skin', 'stand', 'cooling pad',
+    'charger', 'adapter', 'mouse', 'keyboard', 'headset', 'backpack',
+    'cleaning kit', 'screen protector', 'dock', 'hub', 'cable', 'sticker',
+    'decal', 'stylus', 'webcam cover', 'privacy filter', 'lock',
+]
 
 
 class AmazonScraper:
@@ -35,6 +49,10 @@ class AmazonScraper:
             return float(price_str)
         except ValueError:
             return None
+
+    def _looks_like_accessory(self, title: str) -> bool:
+        title_lower = title.lower()
+        return any(term in title_lower for term in ACCESSORY_TERMS)
 
     def parse_products_from_markdown(self, markdown: str, category: str = None) -> List[Dict[str, Any]]:
         """
@@ -65,6 +83,9 @@ class AmazonScraper:
             title = title.replace('\\|', '|').replace('\\', '')
 
             if not title or len(title) < 5:
+                continue
+
+            if self._looks_like_accessory(title):
                 continue
 
             # Build clean product URL
@@ -197,6 +218,8 @@ class AmazonScraper:
             if len(category_products) >= max_products:
                 break
 
+            time.sleep(random.uniform(0.8, 2.0))  # jittered delay between pages
+
         category_products = category_products[:max_products]
         self.products.extend(category_products)
         return category_products
@@ -226,6 +249,17 @@ class AmazonScraper:
     def get_products(self) -> List[Dict[str, Any]]:
         """Return all scraped products."""
         return self.products
+
+    def search(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+        """Ad-hoc live search for a specific product (dashboard search
+        feature)."""
+        import urllib.parse
+        url = f"https://www.amazon.sa/s?k={urllib.parse.quote(query)}&i=computers"
+        markdown = self.firecrawl.extract_products_from_page(url)
+        if not markdown:
+            return []
+        products = self.parse_products_from_markdown(markdown, category=None)
+        return products[:max_results]
 
 
 if __name__ == '__main__':

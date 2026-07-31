@@ -11,6 +11,7 @@ Constructor.io using a public, browser-exposed search-only API key.
 
 import json
 import re
+import random
 import time
 from datetime import datetime
 from typing import List, Dict, Any, Optional
@@ -19,12 +20,17 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import TIMESTAMP
+from config.config import TIMESTAMP, FIRECRAWL_API_KEY, PLATFORMS
 
 try:
     import requests
 except ImportError:
     requests = None
+
+try:
+    from utils.firecrawl_helper import FirecrawlHelper
+except ImportError:
+    FirecrawlHelper = None
 
 
 # Public Constructor.io search-only key, observed in Jarir's own storefront
@@ -47,6 +53,8 @@ class JarirScraper:
         self.products = []
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'})
+        self._firecrawl = None  # lazy - only needed if the API fallback triggers
+        self.used_fallback = {}  # category -> bool, for health-check reporting
 
     def _search_page(self, query: str, page: int, per_page: int = 100) -> Optional[Dict]:
         """Call Jarir's Constructor.io-backed search API for one page of results."""
@@ -79,6 +87,8 @@ class JarirScraper:
             return ptyp in LAPTOP_PTYPES
         if category == 'Desktop':
             return DESKTOP_PTYPE_SUBSTRING in ptyp
+        if category is None:
+            return True  # unfiltered - used for ad-hoc user search, not the catalog scrape
         return False
 
     def _map_result_to_product(self, hit: Dict, category: str) -> Optional[Dict[str, Any]]:
@@ -89,6 +99,16 @@ class JarirScraper:
         ptyp = meta.get('ptyp', '')
         if not self._passes_type_filter(ptyp, category):
             return None
+
+        if category is None:
+            # ad-hoc search: resolve a display category from ptyp instead
+            # of trusting an input category (there isn't one)
+            if 'laptop' in ptyp.lower():
+                category = 'Laptop'
+            elif 'desktop' in ptyp.lower():
+                category = 'Desktop'
+            else:
+                category = ptyp or 'Other'
 
         title = hit.get('value') or meta.get('name')
         if not title:
@@ -140,7 +160,13 @@ class JarirScraper:
         return product
 
     def scrape_category(self, query: str, category: str, max_products: int = 1000) -> List[Dict[str, Any]]:
-        """Scrape all products for a category via paginated search API calls."""
+        """Scrape all products for a category via paginated search API calls.
+        Falls back to markdown-scraping the curated category landing page
+        (Firecrawl) if the API returns nothing at all - e.g. if Jarir
+        rotates/revokes the Constructor.io key this integration depends
+        on. The fallback only surfaces ~12 curated products (that page's
+        known limitation, see module docstring), so it's a degraded-but-
+        alive mode, not full parity."""
         print(f"\n{'='*60}")
         print(f"Scraping Jarir {category} (query='{query}') via search API")
         print(f"{'='*60}")
@@ -150,11 +176,13 @@ class JarirScraper:
         seen_urls = set()
         page = 1
         total_num_results = None
+        api_had_any_response = False
 
         while len(collected) < max_products:
             result = self._search_page(query, page, per_page)
             if not result:
                 break
+            api_had_any_response = True
 
             response = result.get('response', {})
             if total_num_results is None:
@@ -182,12 +210,104 @@ class JarirScraper:
                 break
 
             page += 1
-            time.sleep(0.3)  # be polite
+            time.sleep(random.uniform(0.3, 0.8))  # jittered, be polite
+
+        self.used_fallback[category] = False
+
+        if not collected:
+            reason = "API unreachable" if not api_had_any_response else "API reachable but 0 genuine matches"
+            print(f"[Jarir] ⚠ {category}: search API produced no results ({reason}). Falling back to markdown-scraping the category landing page.")
+            collected = self._scrape_category_via_markdown_fallback(category, max_products)
+            self.used_fallback[category] = True
 
         collected = collected[:max_products]
         self.products.extend(collected)
-        print(f"✓ Jarir {category}: {len(collected)} genuine products collected")
+        print(f"✓ Jarir {category}: {len(collected)} genuine products collected"
+              f"{' (via fallback)' if self.used_fallback[category] else ''}")
         return collected
+
+    def _scrape_category_via_markdown_fallback(self, category: str, max_products: int) -> List[Dict[str, Any]]:
+        """Degraded-mode fallback: scrape Jarir's curated category landing
+        page via Firecrawl + regex, same technique used before the
+        Constructor.io API was discovered. Only surfaces the page's ~12
+        curated products, not the full catalog - but keeps the pipeline
+        alive instead of returning zero Jarir data."""
+        if FirecrawlHelper is None:
+            print("[Jarir] Fallback unavailable: firecrawl-py not installed")
+            return []
+
+        url_key = 'laptop_url' if category == 'Laptop' else 'desktop_url'
+        url = PLATFORMS['jarir'].get(url_key)
+        if not url:
+            return []
+
+        if self._firecrawl is None:
+            try:
+                self._firecrawl = FirecrawlHelper(FIRECRAWL_API_KEY)
+            except Exception as e:
+                print(f"[Jarir] Fallback unavailable: {e}")
+                return []
+
+        markdown = self._firecrawl.extract_products_from_page(url)
+        if not markdown:
+            print(f"[Jarir] Fallback: failed to fetch {url}")
+            return []
+
+        products = []
+        product_urls = re.findall(r'https://www\.jarir\.com/sa-en/[^)]+\.html[^)\s]*', markdown)
+
+        for product_url in product_urls:
+            idx = markdown.find(product_url)
+            if idx < 0:
+                continue
+            section = markdown[max(0, idx - 1500):idx + len(product_url)]
+
+            title_matches = re.findall(r'\[!\[([^\]]+)\]', section)
+            title = title_matches[-1] if title_matches else None
+            if not title or len(title) < 5:
+                continue
+
+            price_pattern = r'\n\s*SR\s+([\d,]+)\s*\n(?!.*Save)'
+            price_match = re.search(price_pattern, section, re.DOTALL)
+            if price_match:
+                price = self.normalize_price(price_match.group(1))
+            else:
+                all_prices = re.findall(r'SR\s+([\d,]+)', section)
+                valid_prices = [p for p in all_prices if self.normalize_price(p) and self.normalize_price(p) > 100]
+                price = self.normalize_price(valid_prices[0]) if valid_prices else None
+
+            if price is None:
+                continue
+
+            products.append({
+                'source_platform': self.platform_name,
+                'category': category,
+                'subtype': 'Gaming' if 'gaming' in title.lower() else 'Standard',
+                'product_url': product_url,
+                'raw_title': title,
+                'title': title,
+                'price': price,
+                'original_price': None,
+                'currency': 'SAR',
+                'availability': 'In Stock',
+                'rating': None,
+                'review_count': 0,
+                'image_url': '',
+                'scraped_at': TIMESTAMP,
+                'brand': None,
+                'model_name': None,
+                'model_number': None,
+                'processor': None,
+                'ram': None,
+                'storage': None,
+                'graphics_card': None,
+            })
+
+            if len(products) >= max_products:
+                break
+
+        print(f"[Jarir] Fallback: {len(products)} products from curated landing page")
+        return products
 
     def scrape_laptops(self, max_products: int = 1000) -> List[Dict[str, Any]]:
         return self.scrape_category('laptop', 'Laptop', max_products)
@@ -202,6 +322,22 @@ class JarirScraper:
 
     def get_products(self) -> List[Dict[str, Any]]:
         return self.products
+
+    def search(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+        """Ad-hoc live search for a specific product (used by the
+        dashboard's product search feature, not the full catalog scrape).
+        Unfiltered by category/ptyp - returns whatever Jarir's search
+        thinks matches the query."""
+        result = self._search_page(query, page=1, per_page=max_results)
+        if not result:
+            return []
+        hits = result.get('response', {}).get('results', [])
+        products = []
+        for hit in hits[:max_results]:
+            product = self._map_result_to_product(hit, category=None)
+            if product:
+                products.append(product)
+        return products
 
 
 if __name__ == '__main__':

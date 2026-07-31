@@ -18,6 +18,7 @@ development: nbHits=2.8M and unrelated products vs. the correct ~1,500).
 
 import json
 import re
+import random
 import time
 from typing import List, Dict, Any, Optional
 import sys
@@ -109,6 +110,20 @@ class NoonScraper:
     def _map_hit_to_product(self, hit: Dict, category: str) -> Optional[Dict[str, Any]]:
         name = hit.get('name')
         if not name or self._looks_like_accessory(name):
+            return None
+
+        # The "desktop computer" search query returns some results that
+        # are actually laptops (e.g. gaming laptops marketed as capable
+        # "desktop replacements") - reject anything whose title says
+        # laptop/notebook when we're scraping the Desktop category, since
+        # trusting the query category blindly was causing cross-category
+        # false merges (a laptop mislabeled Desktop could never legitimately
+        # match another laptop, since the matcher guards on category).
+        name_lower_check = name.lower()
+        if category == 'Desktop' and ('laptop' in name_lower_check or 'notebook' in name_lower_check) \
+           and 'desktop' not in name_lower_check:
+            return None
+        if category == 'Laptop' and 'desktop' in name_lower_check and 'laptop' not in name_lower_check:
             return None
 
         price = self.normalize_price(hit.get('sale_price') if hit.get('sale_price') else hit.get('price'))
@@ -210,6 +225,8 @@ class NoonScraper:
             if nb_pages and page >= nb_pages:
                 break
 
+            time.sleep(random.uniform(1.0, 2.5))  # jittered delay between pages
+
         collected = collected[:max_products]
         self.products.extend(collected)
         print(f"✓ Noon {category}: {len(collected)} products collected")
@@ -228,6 +245,21 @@ class NoonScraper:
 
     def get_products(self) -> List[Dict[str, Any]]:
         return self.products
+
+    def search(self, query: str, max_results: int = 10) -> List[Dict[str, Any]]:
+        """Ad-hoc live search for a specific product (dashboard search
+        feature). Unfiltered by category - uses Noon's own relevance
+        ranking for whatever the user typed."""
+        result = self._fetch_page(query, page=1)
+        if not result or result.get('error'):
+            return []
+        hits = result.get('hits', [])
+        products = []
+        for hit in hits[:max_results]:
+            product = self._map_hit_to_product(hit, category=None)
+            if product:
+                products.append(product)
+        return products
 
 
 if __name__ == '__main__':
