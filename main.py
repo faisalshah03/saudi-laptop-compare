@@ -26,6 +26,7 @@ from utils.health_check import (
     check_platform_health, compute_field_coverage, compute_merge_stats,
     log_run, PlatformScrapeFailure
 )
+from utils.link_refresh import LinkRefresher
 
 
 def print_section(title: str):
@@ -185,6 +186,69 @@ def phase_4_dashboard():
     print("   • Flask + Vue.js (lightweight)")
 
 
+def run_refresh(max_per_platform: int = 200):
+    """Cheap weekly refresh mode: revisit stored product links instead
+    of re-running a full search-based scrape. Only updates products that
+    already have a link from a previous full scrape (`python3 main.py`)
+    - it cannot discover brand-new products on its own, since it never
+    searches, only revisits known URLs. Run a full scrape periodically
+    alongside this to pick up new SKUs.
+
+    Only refreshes Jarir and Extra by default - see
+    LinkRefresher.DEFAULT_SAFE_PLATFORMS for why Noon/Amazon aren't
+    trusted for this yet (their product-detail-page price extraction
+    isn't verified, and a false negative here would silently null out
+    good data)."""
+    print("\n" + "="*70)
+    print("  🔄 LINK-BASED REFRESH (Jarir + Extra)")
+    print("="*70)
+
+    merged_file = f'{DATA_DIR}/merged_products.json'
+    if not os.path.exists(merged_file):
+        print(f"❌ {merged_file} not found - run a full scrape first (`python3 main.py`).")
+        sys.exit(1)
+
+    with open(merged_file, 'r', encoding='utf-8') as f:
+        products = json.load(f)
+
+    print(f"📊 Loaded {len(products)} products from previous scrape")
+
+    refresher = LinkRefresher()
+    result = refresher.refresh_catalog(products, max_per_platform=max_per_platform)
+
+    with open(merged_file, 'w', encoding='utf-8') as f:
+        json.dump(result['products'], f, ensure_ascii=False, indent=2, default=str)
+    print(f"\n💾 Updated merged data saved: {merged_file}")
+
+    print_section("✅ REFRESH COMPLETE")
+    for platform, stats in result['stats'].items():
+        print(f"  {platform}: checked={stats['checked']} updated={stats['updated']} "
+              f"dead={stats['dead']} errors={stats['errors']}")
+
+    # Regenerate Excel using the refreshed prices. Gap analysis isn't
+    # recomputed here (it needs the raw per-platform product lists,
+    # which aren't kept around after a run) - re-uses whatever gap
+    # analysis is already on disk from the last full scrape as a known
+    # simplification; run a full scrape to refresh the gap analysis itself.
+    gap_file = f'{DATA_DIR}/gap_analyses.json'
+    comparisons = None
+    if os.path.exists(gap_file):
+        with open(gap_file, 'r', encoding='utf-8') as f:
+            comparisons = json.load(f)
+
+    raw_file = f'{DATA_DIR}/raw_products.json'
+    raw_products = []
+    if os.path.exists(raw_file):
+        with open(raw_file, 'r', encoding='utf-8') as f:
+            raw_products = json.load(f)
+
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    excel_path = f'{OUTPUT_DIR}/saudi_laptop_prices_{timestamp}.xlsx'
+    ExcelExporter.merge_data_and_export(result['products'], raw_products, excel_path, comparisons)
+    print(f"📄 Excel regenerated: {os.path.basename(excel_path)}")
+
+
 def main():
     """Main orchestration."""
     print("\n" + "="*70)
@@ -269,4 +333,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if '--refresh' in sys.argv:
+        run_refresh()
+    else:
+        main()

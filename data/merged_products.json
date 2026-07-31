@@ -29,7 +29,8 @@
     "noon_availability": "Not Listed",
     "best_price": 2099.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-APPLE-APPLE-MACBOOK-NEO-APPLE-8",
@@ -61,7 +62,8 @@
     "noon_availability": "Not Listed",
     "best_price": 3299.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-APPLE-APPLE-MACBOOK-NEO-APPLE-8-2",
@@ -93,7 +95,8 @@
     "noon_availability": "Not Listed",
     "best_price": 3299.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-APPLE-APPLE-MACBOOK-NEO-APPLE-8-3",
@@ -125,7 +128,8 @@
     "noon_availability": "Not Listed",
     "best_price": 3799.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-HP-HP-NOTEBOOK-INTEL-8-2",
@@ -157,7 +161,8 @@
     "noon_availability": "Not Listed",
     "best_price": 2399.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-APPLE-APPLE-MACBOOK-AIR-APPLE-16",
@@ -189,7 +194,8 @@
     "noon_availability": "Not Listed",
     "best_price": 5999.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-HP-HP-VICTUS-INTEL-24",
@@ -221,7 +227,8 @@
     "noon_availability": "Not Listed",
     "best_price": 2999.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-ASUS-ASUS-VIVOBOOK-INTEL-16",
@@ -253,7 +260,8 @@
     "noon_availability": "Not Listed",
     "best_price": 2999.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-HONOR-HONOR-MAGICBOOK-INTEL-8",
@@ -277,7 +285,7 @@
     "jarir_price": 2099.0,
     "jarir_link": "https://www.jarir.com/sa-en/honor-magicbook-x14-laptops-673094.html",
     "jarir_availability": "In Stock",
-    "extra_price": 2099.0,
+    "extra_price": 2399.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/clamshell/honor-magicbook-x14-13th-gen-intel-core-i5-13420h-8gb-512gb-14-inch-gray/p/100504165",
     "extra_availability": "In Stock",
     "noon_price": null,
@@ -285,7 +293,8 @@
     "noon_availability": "Not Listed",
     "best_price": 2099.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-ASUS-ASUS-VIVOBOOK-AMD-8",
@@ -949,15 +958,16 @@
     "jarir_price": 5399.0,
     "jarir_link": "https://www.jarir.com/sa-en/hp-omnibook-5-flip-2-in-1-laptops-683562.html",
     "jarir_availability": "In Stock",
-    "extra_price": 6499.0,
+    "extra_price": 7299.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/clamshell/hp-omnibook-ultra-flip-core-ultra-7-16gb-1tb-14-inch-touch-gray/p/100392154",
-    "extra_availability": "In Stock",
+    "extra_availability": "Out of Stock",
     "noon_price": null,
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5399.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-APPLE-APPLE-MACBOOK-NEO-APPLE-8-8",
@@ -1621,15 +1631,16 @@
     "jarir_price": 4999.0,
     "jarir_link": "https://www.jarir.com/sa-en/lenovo-yoga-7-2-in-1-laptops-653612.html",
     "jarir_availability": "In Stock",
-    "extra_price": 3499.0,
+    "extra_price": 3999.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/convertible/lenovo-yoga-7-14ill10-convertible-intel-core-ultra-5-16gb-512gb-14-inch-wuxga-oled-luna-grey/p/100508903",
     "extra_availability": "In Stock",
     "noon_price": null,
     "noon_link": null,
     "noon_availability": "Not Listed",
-    "best_price": 3499.0,
+    "best_price": 3999.0,
     "best_price_platform": "Extra",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-HP-OMNIBOOK-7-AERO-AMD-16",
@@ -2293,7 +2304,7 @@
     "jarir_price": 2399.0,
     "jarir_link": "https://www.jarir.com/sa-en/hp-2-in-1-laptops-660050.html",
     "jarir_availability": "In Stock",
-    "extra_price": 2399.0,
+    "extra_price": 2999.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/convertible/hp-laptop-omnibook-5-flip-x360-core-3-100u-8gb-512gb-touch-14-inch-wuxga-glacier-silver/p/100461840",
     "extra_availability": "In Stock",
     "noon_price": null,
@@ -2301,7 +2312,8 @@
     "noon_availability": "Not Listed",
     "best_price": 2399.0,
     "best_price_platform": "Jarir",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-HP-HP-VICTUS-INTEL-24-5",
@@ -3349,15 +3361,16 @@
     "jarir_price": 8699.0,
     "jarir_link": "https://www.jarir.com/sa-en/microsoft-surface-laptops-681209.html",
     "jarir_availability": "In Stock",
-    "extra_price": 4299.0,
+    "extra_price": 5199.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/clamshell/microsoft-surface-laptop-snapdragon-x-plus-16gb-256gb-platinum-metal/p/100437791",
     "extra_availability": "In Stock",
     "noon_price": null,
     "noon_link": null,
     "noon_availability": "Not Listed",
-    "best_price": 4299.0,
+    "best_price": 5199.0,
     "best_price_platform": "Extra",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-LENOVO-LENOVO-THINKBOOK-INTEL-16",
@@ -10492,7 +10505,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 898.55,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10524,7 +10537,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1299.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10556,7 +10569,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1104.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10588,7 +10601,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1166.1,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10620,7 +10633,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 722.29,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10652,7 +10665,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1299.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10684,7 +10697,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1090.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10716,7 +10729,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1589.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10748,7 +10761,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1332.38,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10780,7 +10793,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1435.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10812,7 +10825,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 957.7,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10844,7 +10857,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1399.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10876,7 +10889,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1151.05,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10908,7 +10921,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 195.5,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10940,7 +10953,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2410.37,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -10972,7 +10985,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3299.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11004,7 +11017,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1291.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11036,7 +11049,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1099.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11068,7 +11081,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2349.69,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11100,7 +11113,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2499.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11132,7 +11145,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1376.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11164,7 +11177,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1197.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11196,7 +11209,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2475.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11228,7 +11241,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3299.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11260,7 +11273,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2180.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11292,7 +11305,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 875.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11324,7 +11337,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1799.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11356,7 +11369,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1299.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11388,7 +11401,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 207.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11420,7 +11433,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1003.7,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11452,7 +11465,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1199.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11484,7 +11497,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1684.18,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11516,7 +11529,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1062.76,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11548,7 +11561,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3799.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11580,7 +11593,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1438.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11612,7 +11625,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1325.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11644,7 +11657,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1399.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11676,7 +11689,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4199.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11708,7 +11721,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3938.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11740,7 +11753,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2999.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11772,7 +11785,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4099.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11804,7 +11817,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5999.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11836,7 +11849,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1719.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11868,7 +11881,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1899.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11900,7 +11913,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1431.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11932,7 +11945,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1249.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11964,7 +11977,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1379.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -11996,7 +12009,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1890.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12028,7 +12041,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1475.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12060,7 +12073,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1344.45,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12092,7 +12105,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 989.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12124,7 +12137,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 8158.94,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12156,7 +12169,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 228.76,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12188,7 +12201,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 999.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12220,7 +12233,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3399.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12252,7 +12265,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1200.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12284,7 +12297,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1351.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12316,7 +12329,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1669.99,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12348,7 +12361,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2020.98,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12380,7 +12393,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1002.32,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12412,7 +12425,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1926.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12444,7 +12457,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 499.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12476,7 +12489,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5119.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12508,7 +12521,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 935.9,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12540,7 +12553,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4449.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12572,7 +12585,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2180.01,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12604,7 +12617,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2399.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12636,7 +12649,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1109.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12668,7 +12681,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 777.62,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12700,7 +12713,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1617.86,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12732,7 +12745,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2398.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12764,7 +12777,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4799.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12796,7 +12809,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 951.3,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12828,7 +12841,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1999.99,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12860,7 +12873,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2599.98,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12892,7 +12905,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1329.22,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12924,7 +12937,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1218.11,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12956,7 +12969,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3570.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -12988,7 +13001,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 899.99,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13020,7 +13033,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1723.05,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13052,7 +13065,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3699.98,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13084,7 +13097,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1781.02,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13116,7 +13129,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 6600.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13148,7 +13161,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2748.22,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13180,7 +13193,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5197.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13212,7 +13225,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 6690.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13244,7 +13257,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1529.98,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13276,7 +13289,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3680.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13308,7 +13321,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5149.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13340,7 +13353,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3199.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13372,7 +13385,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 6499.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13436,7 +13449,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1929.24,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13468,7 +13481,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3899.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13500,7 +13513,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2225.74,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13532,7 +13545,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 11867.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13564,7 +13577,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5799.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13596,7 +13609,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2282.14,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13628,7 +13641,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 7464.29,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13660,7 +13673,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 9795.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13692,7 +13705,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3402.24,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13724,7 +13737,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 987.47,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13756,7 +13769,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4874.95,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13788,7 +13801,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4299.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13820,7 +13833,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2398.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13852,7 +13865,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3799.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13884,7 +13897,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3199.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13916,7 +13929,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2599.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13948,7 +13961,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3599.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -13980,7 +13993,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1749.95,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14012,7 +14025,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 1798.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14044,7 +14057,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2499.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14076,7 +14089,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 745.52,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14108,7 +14121,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 2804.26,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14140,7 +14153,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3437.96,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14172,7 +14185,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 9508.45,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14204,7 +14217,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 3245.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14236,7 +14249,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 6999.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14268,7 +14281,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 5599.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -14300,7 +14313,7 @@
     "noon_link": null,
     "noon_availability": "Not Listed",
     "best_price": 4699.0,
-    "best_price_platform": "Amazon_Sa",
+    "best_price_platform": "Amazon.sa",
     "last_updated": "2026-07-31T18:52:02.774077"
   },
   {
@@ -22165,15 +22178,16 @@
     "jarir_price": null,
     "jarir_link": null,
     "jarir_availability": "Not Listed",
-    "extra_price": 2899.0,
+    "extra_price": 4099.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/clamshell/hp-laptop-clamshell-intel-core-7-8gb-512gb-15-6-fhd-natural-silver/p/100511938",
     "extra_availability": "In Stock",
     "noon_price": null,
     "noon_link": null,
     "noon_availability": "Not Listed",
-    "best_price": 2899.0,
+    "best_price": 4099.0,
     "best_price_platform": "Extra",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-LENOVO-IDEAPAD-SLIM-5-14IMH10-INTEL",
@@ -22197,15 +22211,16 @@
     "jarir_price": null,
     "jarir_link": null,
     "jarir_availability": "Not Listed",
-    "extra_price": 3699.0,
+    "extra_price": 4299.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/clamshell/lenovo-ideapad-slim-5-14imh10-intel-core-ultra-9-16gb-512gb-14-inch-wuxga-luna-grey/p/100508926",
     "extra_availability": "In Stock",
     "noon_price": null,
     "noon_link": null,
     "noon_availability": "Not Listed",
-    "best_price": 3699.0,
+    "best_price": 4299.0,
     "best_price_platform": "Extra",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-HP-15-FD1051NX-CLAMSHELL-INTEL-8",
@@ -22229,15 +22244,16 @@
     "jarir_price": null,
     "jarir_link": null,
     "jarir_availability": "Not Listed",
-    "extra_price": 2099.0,
+    "extra_price": 2799.0,
     "extra_link": "https://www.extra.com/en-sa/computer/laptops/clamshell/hp-15-fd1051nx-clamshell-intel-core-5-8gb-512gb-15-6-inch-silver/p/100474796",
     "extra_availability": "In Stock",
     "noon_price": null,
     "noon_link": null,
     "noon_availability": "Not Listed",
-    "best_price": 2099.0,
+    "best_price": 2799.0,
     "best_price_platform": "Extra",
-    "last_updated": "2026-07-31T18:52:02.774077"
+    "last_updated": "2026-07-31T18:52:02.774077",
+    "last_refreshed": "2026-07-31T19:15:55.425522"
   },
   {
     "master_sku": "LAPT-LENOVO-YOGA-SLIM-7-14ILL10-INTEL-16",
