@@ -69,9 +69,16 @@ class ProductMatcher:
     # present, so extract_specs() only falls back to title parsing for
     # whichever of these are still missing - it must NOT blindly
     # overwrite good structured data with a fresh title-only extraction.
+    #
+    # graphics_card is deliberately NOT in this list: platform structured
+    # data sometimes gives a raw core-count attribute here instead of an
+    # actual product name (e.g. Jarir's own metadata gives Apple products
+    # "8 Core GPU" instead of a name), so GPU is always derived centrally
+    # from the title via _extract_gpu for consistent formatting across
+    # every platform rather than trusting whatever a platform calls it.
     STRUCTURED_SPEC_FIELDS = [
-        'brand', 'model_name', 'model_number', 'processor',
-        'ram', 'storage', 'graphics_card', 'subtype',
+        'brand', 'model_name', 'model_number', 'processor', 'processor_full',
+        'ram', 'storage', 'subtype',
     ]
 
     def __init__(self):
@@ -87,14 +94,84 @@ class ProductMatcher:
         cover a field - title parsing acts as a second-layer fallback
         instead of never running, or (the previous bug) always running
         and discarding good structured data in the process."""
-        title_specs = self.extract_specs_from_title(product.get('raw_title', ''))
+        raw_title = product.get('raw_title', '')
+        title_specs = self.extract_specs_from_title(raw_title)
 
         specs = {}
         for field in self.STRUCTURED_SPEC_FIELDS:
             structured_value = product.get(field)
             specs[field] = structured_value if structured_value else title_specs.get(field)
 
+        # Re-normalize the short processor field regardless of source -
+        # platform structured data isn't guaranteed to already be in
+        # short form (e.g. Jarir's own catalog data can say "A18 Pro",
+        # which isn't a real distinct tier in this context - Apple's
+        # A-series doesn't ship in laptops with a "Pro" variant, so any
+        # "Pro" scraped alongside it is noise from the listing, not a
+        # real chip name; M-series Pro/Max/Ultra ARE real and kept).
+        specs['processor'] = self._normalize_processor_short(specs.get('processor'), specs.get('brand'))
+        if specs.get('processor_full'):
+            specs['processor_full'] = re.sub(
+                r'(Apple\s+A\d{2})\s*Pro\b', r'\1', specs['processor_full'], flags=re.IGNORECASE
+            )
+
+        # GPU is always derived centrally from title - see
+        # STRUCTURED_SPEC_FIELDS docstring for why platform structured
+        # data isn't trusted here. Apple is forced by the already-
+        # resolved brand field rather than re-detecting "Apple M5"
+        # adjacency in the title text, since "Apple" (brand name) and
+        # "M5" (processor) aren't always adjacent in the title (e.g.
+        # "Apple MacBook Air ..., 13.6", M5, 16 GB..." has other words
+        # between them).
+        if specs.get('brand') == 'Apple':
+            specs['graphics_card'] = 'Apple Silicon'
+        else:
+            specs['graphics_card'] = title_specs.get('graphics_card')
+
+        # model_name must actually appear (loosely) in the product's own
+        # title - catches structured fields that diverge from the title
+        # text (e.g. a generic series name) or any bad extraction.
+        if not self._validate_model_name_against_title(specs.get('model_name'), raw_title):
+            specs['model_name'] = title_specs.get('model_name') \
+                if self._validate_model_name_against_title(title_specs.get('model_name'), raw_title) \
+                else None
+
+        # Normalize capacity display (e.g. 1000GB -> 1TB)
+        if specs.get('ram'):
+            specs['ram'] = self._format_capacity_display(specs['ram'])
+        if specs.get('storage'):
+            specs['storage'] = self._format_capacity_display(specs['storage'])
+
+        # cpu_power / npu_tops: no platform gives these as structured
+        # data, always title-derived
+        specs['cpu_power'] = title_specs.get('cpu_power')
+        specs['npu_tops'] = title_specs.get('npu_tops')
+
+        specs['ai_classification'] = self._classify_ai(
+            specs.get('brand'), specs.get('processor'), specs.get('processor_full'), raw_title
+        )
+
         return {k: v for k, v in specs.items() if v}
+
+    def _validate_model_name_against_title(self, model_name: str, title: str) -> bool:
+        """A model_name is only trusted if it actually appears (loosely)
+        in the product's own title - guards against structured fields
+        that diverge from the title text, or a bad extraction."""
+        if not model_name or not title:
+            return False
+
+        model_clean = re.sub(r'[^\w\s]', '', model_name.lower())
+        title_clean = re.sub(r'[^\w\s]', '', title.lower())
+
+        if model_clean in title_clean:
+            return True
+
+        model_words = [w for w in model_clean.split() if len(w) > 1]
+        if not model_words:
+            return False
+
+        found = sum(1 for w in model_words if w in title_clean)
+        return (found / len(model_words)) >= 0.7
 
     def extract_specs_from_title(self, title: str) -> Dict[str, str]:
         """Extract specifications from product title using regex patterns."""
@@ -104,6 +181,9 @@ class ProductMatcher:
             'model_name': self._extract_model_name(title),
             'model_number': self._extract_model_number(title),
             'processor': self._extract_processor(title),
+            'processor_full': self._extract_processor_full(title),
+            'cpu_power': self._extract_cpu_power(title),
+            'npu_tops': self._extract_npu_tops(title),
             'ram': self._extract_ram(title),
             'storage': self._extract_storage(title),
             'graphics_card': self._extract_gpu(title),
@@ -203,31 +283,148 @@ class ProductMatcher:
         return None
 
     def _extract_processor(self, title: str) -> str:
-        """Extract processor info. Handles both full SKUs (i5-1355U) and
-        bare tiers (just "Intel Core i5"), since listings frequently omit
-        the specific SKU suffix."""
+        """Short/bare processor tier only - brand + tier, no SKU number,
+        no generation text, no core-count descriptor. E.g. "Intel Core
+        i7", "AMD Ryzen 7", "Apple M5", "Intel Core Ultra 7".
+
+        Apple A-series is normalized to just "Apple A18" with no "Pro"
+        qualifier: this dataset's A-series entries are laptop listings
+        (Apple's A-series doesn't ship in laptops at all - only M-series
+        does), so any "Pro" suffix scraped alongside it is noise from a
+        mislabeled listing, not a real distinct chip tier. M-series Pro/
+        Max/Ultra ARE real distinct chip tiers and are kept.
+        """
+        # Apple M/A-series matched separately and formatted explicitly
+        # (not via group(0)) since "Apple" (brand) and "M5"/"A18"
+        # (chip) aren't always textually adjacent in the title (e.g.
+        # "Apple MacBook Air ..., 13.6", M5, 16 GB..." has other words
+        # between them) - a plain adjacency regex would miss these.
+        m_match = re.search(r'\bM([1-9])\b\s*(Pro|Max|Ultra)?', title, re.IGNORECASE)
+        if m_match and re.search(r'\bApple\b', title, re.IGNORECASE):
+            tier = f"M{m_match.group(1)}"
+            if m_match.group(2):
+                tier += f" {m_match.group(2).title()}"
+            return f"Apple {tier}"
+
+        a_match = re.search(r'\bA(\d{2})\b', title)
+        if a_match and re.search(r'\bApple\b', title, re.IGNORECASE):
+            return f"Apple A{a_match.group(1)}"  # "Pro"/etc always dropped
+
         patterns = [
-            r'(Intel Core i[3579]-\d+[A-Za-z]{0,3})',       # Intel Core i5-1355U
-            r'(Intel Core Ultra [579]\s*\d{0,3}[A-Za-z]{0,2})',  # Ultra 7 155H (full SKU + suffix,
-                                                                    # not just the bare tier number)
-            r'(Intel Core [3579](?!\d))',                     # Jarir style: "Intel Core 7" (no "i")
-            r'(AMD Ryzen [357]\s*\d{2,4}[A-Za-z]{0,3})',      # AMD Ryzen 7 7730U
-            r'(Apple M[1-9]\s*(?:Pro|Max|Ultra)?)',           # Apple M2 Pro (M1..M9, future-proofed)
-            r'(i[3579]-\d{4,5}[A-Za-z]{0,3})',                # bare SKU, no brand prefix: i5-10310U
-            r'(Ryzen [357]\s*\d{3,4}[A-Za-z]{0,3})',          # bare "Ryzen 7 7730U"
-            r'(Intel Core i[3579])(?!-)',                     # bare "Intel Core i5"
-            r'(AMD Ryzen [357])(?!\s*\d)',                    # bare "AMD Ryzen 5"
-            r'((?:Intel\s+)?Pentium(?:\s+Gold|\s+Silver)?)',
-            r'((?:Intel\s+)?Celeron)',
-            r'(Snapdragon\s*[\w\s]*\d)',
+            r'Intel Core Ultra\s*[3579]',
+            r'Intel Core [3579](?!\d)',                # Jarir style: "Intel Core 7" (no "i")
+            r'Intel Core i[3579]',
+            r'AMD Ryzen AI\s*[3579]',
+            r'AMD Ryzen [3579]',
+            r'(?:Qualcomm\s+)?Snapdragon\s+X\s*(?:Elite|Plus)?',
+            r'(?:Intel\s+)?Pentium(?:\s+Gold|\s+Silver)?',
+            r'(?:Intel\s+)?Celeron',
         ]
 
         for pattern in patterns:
             match = re.search(pattern, title, re.IGNORECASE)
             if match:
-                return re.sub(r'\s{2,}', ' ', match.group(1).strip())
+                return re.sub(r'\s{2,}', ' ', match.group(0).strip())
 
         return None
+
+    def _extract_processor_full(self, title: str) -> str:
+        """Full processor descriptor: SKU number, generation, core-count
+        detail - whatever the title actually states, for verification/
+        precision purposes. E.g. "Intel Core i5-1355U (13th Gen)",
+        "AMD Ryzen 7 7735HS", "Apple M5 10-core CPU"."""
+        # Apple M-series matched separately with an explicit core-count
+        # suffix search, since "Apple" and "M5" aren't always adjacent
+        # (see _extract_processor for the same issue/fix).
+        m_match = re.search(r'\bM([1-9])\b\s*(Pro|Max|Ultra)?', title, re.IGNORECASE)
+        if m_match and re.search(r'\bApple\b', title, re.IGNORECASE):
+            tier = f"M{m_match.group(1)}"
+            if m_match.group(2):
+                tier += f" {m_match.group(2).title()}"
+            nearby = title[m_match.end():m_match.end() + 80]
+            core_match = re.search(r'\d+[- ]core\s*CPU', nearby, re.IGNORECASE) \
+                or re.search(r'\d+[- ]core', nearby, re.IGNORECASE)
+            if core_match:
+                tier += f" {core_match.group(0).strip()}"
+            return f"Apple {tier}"
+
+        a_match = re.search(r'\bA(\d{2})\b', title)
+        if a_match and re.search(r'\bApple\b', title, re.IGNORECASE):
+            return f"Apple A{a_match.group(1)}"  # "Pro"/etc dropped, see docstring elsewhere
+
+        patterns = [
+            r'Intel Core i[3579]-\d+[A-Za-z]{0,3}(?:\s*\(\d+(?:th|st|nd|rd)?\s*Gen\))?',
+            r'Intel Core Ultra\s*[3579]\s*\d{0,3}[A-Za-z]{0,2}(?:\s*\(\d+(?:th|st|nd|rd)?\s*Gen\))?',
+            r'Intel Core [3579](?!\d)',
+            r'AMD Ryzen AI\s*[3579]\s*\d{2,4}[A-Za-z]{0,3}',
+            r'AMD Ryzen [3579]\s*\d{2,4}[A-Za-z]{0,3}',
+            r'i[3579]-\d{4,5}[A-Za-z]{0,3}',            # bare SKU, no brand prefix: i5-10310U
+            r'Ryzen [3579]\s*\d{3,4}[A-Za-z]{0,3}',
+            r'Intel Core i[3579]',
+            r'AMD Ryzen [3579]',
+            r'(?:Qualcomm\s+)?Snapdragon\s+X\s*(?:Elite|Plus)?(?:\s*-\s*\w+)?',
+            r'(?:Intel\s+)?Pentium(?:\s+Gold|\s+Silver)?',
+            r'(?:Intel\s+)?Celeron',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, title, re.IGNORECASE)
+            if match:
+                return re.sub(r'\s{2,}', ' ', match.group(0).strip())
+
+        return None
+
+    def _extract_cpu_power(self, title: str) -> str:
+        """Clock speed if explicitly stated (e.g. "up to 5.2 GHz"). Low
+        coverage expected - most listings don't state this at all."""
+        match = re.search(r'(\d\.\d+)\s*GHz', title, re.IGNORECASE)
+        if match:
+            return f"{match.group(1)} GHz"
+        return None
+
+    def _extract_npu_tops(self, title: str) -> str:
+        """NPU performance in TOPS, if explicitly stated (e.g. "45
+        TOPS"). Low coverage expected - only a minority of AI-PC
+        listings state this number in the title itself."""
+        match = re.search(r'(\d+)\s*TOPS', title, re.IGNORECASE)
+        if match:
+            return f"{match.group(1)} TOPS"
+        return None
+
+    # Processor families with NPUs powerful enough to qualify for
+    # Microsoft's "Copilot+ PC" certification (>=40 TOPS): Intel Core
+    # Ultra 200V (Lunar Lake) and later, Snapdragon X Elite/Plus, Ryzen
+    # AI 300 series. Earlier Core Ultra (100/200 non-V) and generic
+    # "Ryzen AI" chips have NPUs but don't clear the Copilot+ bar - they
+    # still count as "AI+ PC" (NPU-equipped) rather than "No".
+    COPILOT_PLUS_PATTERNS = [
+        r'Core Ultra\s*2\d\dV',
+        r'Snapdragon\s+X\s*(Elite|Plus)',
+        r'Ryzen AI\s*3\d\d',
+    ]
+
+    def _classify_ai(self, brand: str, processor: str, processor_full: str, title: str) -> str:
+        """Classify AI-PC status. Apple's M/A-series always has a Neural
+        Engine, but isn't part of the Windows "Copilot+" certification
+        program, so it gets its own label. This is a heuristic based on
+        chip family name pattern-matching, not verified per-SKU NPU TOPS
+        specs - see report caveat about generation-specific accuracy."""
+        text = f"{processor_full or ''} {processor or ''} {title or ''}"
+
+        if brand == 'Apple' or re.search(r'\bApple\s+[AM]\d', text, re.IGNORECASE):
+            return 'Apple Silicon'
+
+        if re.search(r'copilot\s*\+?\s*pc', title or '', re.IGNORECASE):
+            return 'Copilot+ PC'
+
+        for pattern in self.COPILOT_PLUS_PATTERNS:
+            if re.search(pattern, text, re.IGNORECASE):
+                return 'Copilot+ PC'
+
+        if re.search(r'Core Ultra|Ryzen AI|Snapdragon', text, re.IGNORECASE):
+            return 'AI+ PC'
+
+        return 'No'
 
     def _extract_ram(self, title: str) -> str:
         """Extract RAM capacity."""
@@ -257,25 +454,67 @@ class ProductMatcher:
 
         return None
 
-    def _extract_gpu(self, title: str) -> str:
-        """Extract graphics card info. Handles dedicated GPUs with a model
-        number (RTX 4060) as well as listings that only give VRAM size
-        (e.g. "NVIDIA GeForce 4 GB") and generic integrated graphics."""
-        patterns = [
-            r'(NVIDIA\s+(?:GeForce\s+)?(?:RTX|GTX)\s+\d{3,4}[A-Za-z]{0,2}(?:\s+\d+\s*GB)?)',
-            r'(NVIDIA\s+(?:GeForce\s+)?\d+\s*GB)',              # "NVIDIA GeForce 4 GB" (no model #)
-            r'(AMD\s+Radeon\s+(?:RX\s+)?\d{3,4}[A-Za-z]{0,2})',
-            r'(AMD\s+Radeon\s+Graphics)',
-            r'(Intel\s+Iris\s+X?e?\s*(?:Plus|Graphics)?)',
-            r'(Intel\s+UHD\s+Graphics(?:\s+\d+)?)',
-            r'(Apple\s+GPU|Apple\s+Integrated\s+Graphics)',
-            r'(Intel\s+(?:Integrated\s+)?Graphics)',            # generic fallback
-        ]
+    def _format_capacity_display(self, value: str) -> str:
+        """Normalize a capacity value for DISPLAY: 1000GB and above
+        becomes NTB (e.g. "1000GB" -> "1TB", "2000 GB" -> "2TB")."""
+        if not value:
+            return value
+        match = re.search(r'(\d+(?:\.\d+)?)\s*(GB|TB)', str(value), re.IGNORECASE)
+        if not match:
+            return value
+        num, unit = float(match.group(1)), match.group(2).upper()
+        if unit == 'GB' and num >= 1000:
+            tb = num / 1000
+            tb_str = str(int(tb)) if tb == int(tb) else str(tb)
+            return f"{tb_str}TB"
+        num_str = str(int(num)) if num == int(num) else str(num)
+        return f"{num_str}{unit}"
 
-        for pattern in patterns:
-            match = re.search(pattern, title, re.IGNORECASE)
-            if match:
-                return re.sub(r'\s{2,}', ' ', match.group(1).strip())
+    def _extract_gpu(self, title: str) -> str:
+        """Extract graphics card as a clean PRODUCT NAME only - never a
+        bare VRAM-size or core-count fragment (e.g. "4 GB" or "8 Core
+        GPU"). Apple products always resolve to "Apple Silicon": Apple's
+        GPU isn't a separately branded product, it's integrated into the
+        chip itself, so there's no real "GPU name" to report - platform
+        structured data sometimes gives a raw core-count attribute here
+        instead, which isn't a name and shouldn't be treated as one."""
+        if re.search(r'\bApple\s+M[1-9]|\bApple\s+A\d{2}', title, re.IGNORECASE):
+            return 'Apple Silicon'
+
+        nvidia_match = re.search(
+            r'(?:NVIDIA\s+)?(?:GeForce\s+)?(RTX|GTX)\s*(\d{3,4})\s*(Ti\s*Super|Ti|Super)?',
+            title, re.IGNORECASE
+        )
+        if nvidia_match:
+            parts = [nvidia_match.group(1).upper(), nvidia_match.group(2)]
+            if nvidia_match.group(3):
+                parts.append(nvidia_match.group(3).title().replace(' ', ' '))
+            return ' '.join(parts)
+
+        amd_match = re.search(r'AMD\s+Radeon\s+(?:RX\s+)?(\d{3,4})\s*(XT)?', title, re.IGNORECASE)
+        if amd_match:
+            parts = ['Radeon', 'RX', amd_match.group(1)]
+            if amd_match.group(2):
+                parts.append('XT')
+            return ' '.join(parts)
+
+        if re.search(r'AMD\s+Radeon\s+Graphics', title, re.IGNORECASE):
+            return 'AMD Radeon Graphics'
+
+        if re.search(r'Intel\s+Arc\s+Graphics', title, re.IGNORECASE):
+            return 'Intel Arc Graphics'
+
+        if re.search(r'Intel\s+Iris\s+Xe', title, re.IGNORECASE):
+            return 'Intel Iris Xe'
+
+        if re.search(r'Intel\s+Iris', title, re.IGNORECASE):
+            return 'Intel Iris'
+
+        if re.search(r'Intel\s+UHD\s+Graphics', title, re.IGNORECASE):
+            return 'Intel UHD Graphics'
+
+        if re.search(r'Intel\s+(?:Integrated\s+)?Graphics', title, re.IGNORECASE):
+            return 'Intel Graphics'
 
         return None
 
@@ -306,6 +545,36 @@ class ProductMatcher:
             return ''
 
         return key.lower().strip()
+
+    def _normalize_processor_short(self, value: str, brand: str = None) -> str:
+        """Canonicalize any processor value (from structured platform
+        data OR title regex) down to the short/bare-tier form. Re-applied
+        regardless of source since platform structured data isn't
+        guaranteed to already be short (Jarir's own catalog metadata can
+        give Apple A-series a "Pro" suffix that doesn't correspond to a
+        real distinct laptop chip - Apple's A-series doesn't ship in
+        laptops at all, so treat "Pro" here as listing noise, not a real
+        tier; M-series Pro/Max/Ultra ARE real distinct chips and kept)."""
+        if not value:
+            return None
+
+        is_apple = brand == 'Apple' or re.search(r'\bApple\b', value, re.IGNORECASE)
+        if is_apple:
+            m_match = re.search(r'\bM([1-9])\b\s*(Pro|Max|Ultra)?', value, re.IGNORECASE)
+            if m_match:
+                tier = f"M{m_match.group(1)}"
+                if m_match.group(2):
+                    tier += f" {m_match.group(2).title()}"
+                return f"Apple {tier}"
+
+            a_match = re.search(r'\bA(\d{2})\b', value)
+            if a_match:
+                return f"Apple A{a_match.group(1)}"  # "Pro"/etc always dropped
+
+        # Non-Apple (or Apple value that didn't match either pattern):
+        # re-run the general short-form extractor against this value
+        short = self._extract_processor(value)
+        return short or value
 
     def _normalize_capacity(self, value: str) -> str:
         """Normalize RAM/storage values to a canonical 'NUMBERUNIT' form
@@ -597,9 +866,13 @@ class ProductMatcher:
                 'model_name': specs.get('model_name'),
                 'model_number': specs.get('model_number'),
                 'processor': specs.get('processor'),
+                'processor_full': specs.get('processor_full'),
+                'cpu_power': specs.get('cpu_power'),
                 'ram': specs.get('ram'),
                 'storage': specs.get('storage'),
                 'graphics_card': specs.get('graphics_card'),
+                'ai_classification': specs.get('ai_classification'),
+                'npu_tops': specs.get('npu_tops'),
             }
 
             # Aggregate platform-specific data

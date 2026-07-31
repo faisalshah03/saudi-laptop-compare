@@ -136,12 +136,20 @@ class AmazonScraper:
             }
 
             products.append(product)
-            print(f"  ✓ {title[:60]} - ₪{price:,.0f}" + (f" ({rating}⭐ {review_count} reviews)" if rating else ""))
+            print(f"  ✓ {title[:60]} - SAR {price:,.0f}" + (f" ({rating}⭐ {review_count} reviews)" if rating else ""))
 
         return products
 
     def _extract_specs(self, title: str) -> Dict[str, str]:
-        """Extract specifications from product title."""
+        """Extract a couple of coarse specs for the Raw Data sheet only.
+
+        Deliberately NOT extracting processor/graphics_card here anymore:
+        those are now owned centrally by product_matcher.py's
+        extract_specs(), which splits processor into short/full forms
+        and normalizes GPU to a clean product name. A raw value set here
+        would be treated as "structured" data and silently shadow that
+        better central extraction (see product_matcher.py
+        STRUCTURED_SPEC_FIELDS docstring)."""
         specs = {}
 
         # Brand
@@ -150,15 +158,6 @@ class AmazonScraper:
             if brand.lower() in title.lower():
                 specs['brand'] = brand
                 break
-
-        # Processor
-        processor_match = re.search(
-            r'(Intel Core [i3579]-\d+[A-Z]*|AMD Ryzen [357]\s*\d+|Apple M[1-3]|Intel Core Ultra)',
-            title,
-            re.IGNORECASE
-        )
-        if processor_match:
-            specs['processor'] = processor_match.group(0)
 
         # RAM
         ram_match = re.search(r'(\d+)\s*GB\s*(?:RAM|DDR)', title, re.IGNORECASE)
@@ -169,15 +168,6 @@ class AmazonScraper:
         storage_match = re.search(r'(\d+)\s*(GB|TB)\s*(?:SSD|HDD|NVMe)', title, re.IGNORECASE)
         if storage_match:
             specs['storage'] = f"{storage_match.group(1)}{storage_match.group(2)}"
-
-        # GPU
-        gpu_match = re.search(
-            r'(NVIDIA|AMD|Intel)\s*[\w\s]*(?:Graphics|GPU|RTX|GTX|Radeon)',
-            title,
-            re.IGNORECASE
-        )
-        if gpu_match:
-            specs['graphics_card'] = gpu_match.group(0).strip()
 
         return specs
 
@@ -274,7 +264,7 @@ if __name__ == '__main__':
         print("\nFirst 3 Products:")
         for i, product in enumerate(products[:3], 1):
             print(f"\n{i}. {product['raw_title'][:70]}")
-            print(f"   Price: ₪{product['price']:,.0f}")
+            print(f"   Price: SAR {product['price']:,.0f}")
             print(f"   URL: {product['product_url'][:60]}")
             if product.get('rating'):
                 print(f"   Rating: {product['rating']}⭐ ({product['review_count']} reviews)")

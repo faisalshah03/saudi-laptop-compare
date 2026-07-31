@@ -65,7 +65,7 @@ try:
         print("\nFirst 3 Products:")
         for i, product in enumerate(all_products[:3], 1):
             print(f"\n{i}. {product['raw_title'][:70]}")
-            print(f"   Price: ₪{product['price']:,.0f}")
+            print(f"   Price: SAR {product['price']:,.0f}")
             print(f"   URL: {product['product_url'][:60]}...")
             print(f"   Rating: {product['rating']} ⭐ ({product['review_count']} reviews)")
             print(f"   In Stock: {product['availability']}")

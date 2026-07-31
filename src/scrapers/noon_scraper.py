@@ -151,13 +151,12 @@ class NoonScraper:
         elif 'chromebook' in name_lower:
             subtype = 'Chromebook'
 
-        # Try to pull processor/GPU out of the title since plp_specifications
-        # only reliably gives RAM/storage/OS, not CPU/GPU
-        cpu_match = re.search(
-            r'((?:Intel\s+)?Core [Ii][3579]-\w+|(?:Intel\s+)?Core [3579](?!\d)|(?:AMD\s+)?Ryzen [357]\s*\w*|Apple M[1-4]\s*(?:Pro|Max)?|(?:Intel\s+)?Core Ultra \w*|Celeron|Pentium)',
-            name,
-            re.IGNORECASE
-        )
+        # processor/graphics_card intentionally not extracted here -
+        # plp_specifications only reliably gives RAM/storage/OS, and
+        # processor/GPU are now owned centrally by product_matcher.py's
+        # extract_specs() (splits processor into short/full forms,
+        # normalizes GPU to a clean name) - a raw value set here would
+        # be treated as "structured" and shadow that better extraction.
 
         product = {
             'source_platform': self.platform_name,
@@ -177,10 +176,8 @@ class NoonScraper:
             'brand': hit.get('brand'),
             'model_name': None,
             'model_number': sku,
-            'processor': cpu_match.group(1) if cpu_match else None,
             'ram': specs.get('RAM Size'),
             'storage': specs.get('Internal Memory'),
-            'graphics_card': None,
         }
         return product
 

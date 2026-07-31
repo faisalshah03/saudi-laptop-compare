@@ -182,6 +182,14 @@ def render_price_comparison(df):
     if selected_brand != 'All':
         df = df[df['brand'] == selected_brand]
 
+    # AI classification filter
+    if 'ai_classification' in df.columns:
+        ai_options = ['All'] + sorted(df['ai_classification'].dropna().unique().tolist())
+        selected_ai = st.sidebar.selectbox("AI Classification", ai_options)
+
+        if selected_ai != 'All':
+            df = df[df['ai_classification'] == selected_ai]
+
     # Price range filter
     if not df.empty and 'best_price' in df.columns:
         price_col = df['best_price'].dropna()
@@ -223,7 +231,7 @@ def render_price_comparison(df):
     with col2:
         if not df.empty and 'best_price' in df.columns:
             avg_price = df['best_price'].dropna().mean()
-            st.metric("Average Price", f"₪{avg_price:,.0f}" if pd.notna(avg_price) else "N/A")
+            st.metric("Average Price", f"SAR {avg_price:,.0f}" if pd.notna(avg_price) else "N/A")
 
     with col3:
         platforms_available = sum(1 for p in platforms if p in platform_cols and platform_cols[p] in df.columns and df[platform_cols[p]].notna().any())
@@ -242,7 +250,8 @@ def render_price_comparison(df):
         # Select columns to display
         display_cols = [
             'title', 'category', 'subtype', 'brand', 'model_name',
-            'processor', 'ram', 'storage', 'graphics_card',
+            'processor', 'processor_full', 'cpu_power', 'ram', 'storage',
+            'graphics_card', 'ai_classification', 'npu_tops',
             'amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price',
             'best_price', 'best_price_platform'
         ]
@@ -254,9 +263,13 @@ def render_price_comparison(df):
             'brand': 'Brand',
             'model_name': 'Model',
             'processor': 'Processor',
+            'processor_full': 'Processor (Full)',
+            'cpu_power': 'CPU Clock',
             'ram': 'RAM',
             'storage': 'Storage',
             'graphics_card': 'GPU',
+            'ai_classification': 'AI',
+            'npu_tops': 'NPU TOPS',
             'amazon_sa_price': 'Amazon.sa',
             'jarir_price': 'Jarir',
             'extra_price': 'Extra',
@@ -273,7 +286,7 @@ def render_price_comparison(df):
         for col in ['amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price', 'best_price']:
             if col in formatted_df.columns:
                 formatted_df[col] = formatted_df[col].apply(
-                    lambda x: f"₪{x:,.0f}" if pd.notna(x) else "N/A"
+                    lambda x: f"SAR {x:,.0f}" if pd.notna(x) else "N/A"
                 )
 
         formatted_df = formatted_df.fillna('N/A')
@@ -365,9 +378,44 @@ def render_gap_analysis():
     # Missing-by-brand breakdown
     missing_by_brand = summary.get('missing_by_brand', {})
     if missing_by_brand:
-        st.markdown("### 📉 Top Brands Missing from Noon")
+        st.markdown("### 📉 Brand-Level Coverage")
         brand_df = pd.DataFrame(list(missing_by_brand.items()), columns=['Brand', 'Missing SKUs']).head(10)
         st.bar_chart(brand_df.set_index('Brand'))
+
+    # Model-series level breakdown within a selected brand (e.g. ThinkPad
+    # vs IdeaPad coverage within Lenovo, not just "Lenovo" as a whole)
+    st.markdown("### 🔬 Model-Series Level Coverage")
+    st.caption(
+        "Pick a brand to see coverage broken down by model line/series - "
+        "brand-level numbers can hide that one series is fully covered "
+        "while another is completely missing."
+    )
+
+    brand_options = sorted(gap_df['brand'].dropna().unique().tolist()) if 'brand' in gap_df.columns else []
+    if brand_options:
+        selected_series_brand = st.selectbox("Brand", brand_options, key="series_brand_select")
+        series_df = gap_df[gap_df['brand'] == selected_series_brand].copy()
+
+        def _extract_series(model_name):
+            if not model_name or not isinstance(model_name, str):
+                return 'Unknown'
+            first_word = model_name.split()[0] if model_name.split() else 'Unknown'
+            return first_word
+
+        series_df['series'] = series_df['model_name'].apply(_extract_series)
+
+        series_summary = series_df.groupby(['series', 'noon_status']).size().unstack(fill_value=0)
+        for status in ['Exact Match', 'Similar Available', 'Not Available']:
+            if status not in series_summary.columns:
+                series_summary[status] = 0
+        series_summary = series_summary[['Exact Match', 'Similar Available', 'Not Available']]
+        series_summary['Total'] = series_summary.sum(axis=1)
+        series_summary = series_summary.sort_values('Total', ascending=False)
+
+        st.bar_chart(series_summary[['Exact Match', 'Similar Available', 'Not Available']])
+        st.dataframe(series_summary, use_container_width=True)
+    else:
+        st.info("No brand data available for series breakdown.")
 
     st.markdown("### 🔍 Filter")
     status_options = ['All', 'Not Available', 'Similar Available', 'Exact Match']

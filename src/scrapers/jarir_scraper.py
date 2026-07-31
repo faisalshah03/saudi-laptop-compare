@@ -152,10 +152,20 @@ class JarirScraper:
             'brand': meta.get('brand'),
             'model_name': meta.get('seri') or meta.get('model'),
             'model_number': meta.get('moch') or data.get('sku'),
-            'processor': meta.get('prcr') or meta.get('prse'),
+            # Jarir's own metadata already splits short tier ('prse', e.g.
+            # "Intel Core i5") from the full SKU/generation descriptor
+            # ('prcr', e.g. "Intel Core i5-1355U (13th Gen)") - use both
+            # directly rather than re-deriving via regex.
+            'processor': meta.get('prse'),
+            'processor_full': meta.get('prcr') or meta.get('prse'),
             'ram': meta.get('symm'),
             'storage': meta.get('tsca'),
-            'graphics_card': meta.get('gyro') or meta.get('grpc'),
+            # graphics_card intentionally not set here - Jarir's own
+            # 'gyro'/'grpc' fields sometimes give a raw core-count
+            # attribute instead of an actual GPU name (e.g. Apple
+            # products show "8 Core GPU"); GPU is always derived
+            # centrally from the title instead (see product_matcher.py
+            # STRUCTURED_SPEC_FIELDS docstring).
         }
         return product
 

@@ -24,20 +24,24 @@ class ExcelExporter:
         ('F', 'model_name', 'Model Name'),
         ('G', 'model_number', 'Model Number'),
         ('H', 'processor', 'Processor'),
-        ('I', 'ram', 'RAM'),
-        ('J', 'storage', 'Storage'),
-        ('K', 'graphics_card', 'Graphics Card'),
-        ('L', 'amazon_sa_price', 'Amazon.sa (SAR)'),
-        ('M', 'jarir_price', 'Jarir (SAR)'),
-        ('N', 'extra_price', 'Extra.com (SAR)'),
-        ('O', 'noon_price', 'Noon.com (SAR)'),
-        ('P', 'best_price', 'Best Price (SAR)'),
-        ('Q', 'best_price_platform', 'Best on Platform'),
-        ('R', 'amazon_sa_link', 'Amazon Link'),
-        ('S', 'jarir_link', 'Jarir Link'),
-        ('T', 'extra_link', 'Extra Link'),
-        ('U', 'noon_link', 'Noon Link'),
-        ('V', 'last_updated', 'Last Updated'),
+        ('I', 'processor_full', 'Processor (Full Name)'),
+        ('J', 'cpu_power', 'CPU Clock Speed'),
+        ('K', 'ram', 'RAM'),
+        ('L', 'storage', 'Storage'),
+        ('M', 'graphics_card', 'Graphics Card'),
+        ('N', 'ai_classification', 'AI Classification'),
+        ('O', 'npu_tops', 'NPU TOPS'),
+        ('P', 'amazon_sa_price', 'Amazon.sa (SAR)'),
+        ('Q', 'jarir_price', 'Jarir (SAR)'),
+        ('R', 'extra_price', 'Extra.com (SAR)'),
+        ('S', 'noon_price', 'Noon.com (SAR)'),
+        ('T', 'best_price', 'Best Price (SAR)'),
+        ('U', 'best_price_platform', 'Best on Platform'),
+        ('V', 'amazon_sa_link', 'Amazon Link'),
+        ('W', 'jarir_link', 'Jarir Link'),
+        ('X', 'extra_link', 'Extra Link'),
+        ('Y', 'noon_link', 'Noon Link'),
+        ('Z', 'last_updated', 'Last Updated'),
     ]
 
     def __init__(self, output_path: str):
@@ -66,14 +70,14 @@ class ExcelExporter:
         ws.freeze_panes = 'A2'
 
         # Auto-filter
-        ws.auto_filter.ref = f'A1:V{ws.max_row}'
+        ws.auto_filter.ref = f'A1:Z{ws.max_row}'
 
         # Set column widths
         column_widths = {
             'A': 18, 'B': 40, 'C': 10, 'D': 16, 'E': 12, 'F': 18, 'G': 12,
-            'H': 22, 'I': 10, 'J': 12, 'K': 18, 'L': 14, 'M': 14, 'N': 14,
-            'O': 14, 'P': 14, 'Q': 16, 'R': 30, 'S': 30, 'T': 30, 'U': 30,
-            'V': 18
+            'H': 16, 'I': 26, 'J': 14, 'K': 10, 'L': 12, 'M': 18, 'N': 16,
+            'O': 12, 'P': 14, 'Q': 14, 'R': 14, 'S': 14, 'T': 14, 'U': 16,
+            'V': 30, 'W': 30, 'X': 30, 'Y': 30, 'Z': 18
         }
 
         for col, width in column_widths.items():
@@ -139,7 +143,7 @@ class ExcelExporter:
 
         # Set up auto-filter
         max_row = len(products) + 1
-        ws.auto_filter.ref = f'A1:V{max_row}'
+        ws.auto_filter.ref = f'A1:Z{max_row}'
 
     def create_raw_data_sheet(self, raw_products: List[Dict]):
         """Create raw data sheet for reference."""
