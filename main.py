@@ -119,30 +119,44 @@ def phase_2_merge(raw_products: list) -> dict:
 
 
 def phase_2b_gap_analysis(unified_products: dict, raw_products: list):
-    """Phase 2b: Noon assortment gap analysis."""
-    print_section("PHASE 2B: NOON ASSORTMENT GAP ANALYSIS")
+    """Phase 2b: Cross-platform assortment gap analysis vs Noon.
+
+    Runs four separate comparisons:
+      - "universe": any of Amazon/Jarir/Extra vs Noon (combined)
+      - "jarir": Jarir specifically vs Noon
+      - "extra": Extra specifically vs Noon
+      - "amazon_sa": Amazon.sa specifically vs Noon
+
+    The per-platform breakdowns matter separately from the combined
+    universe view because each source platform has a different
+    assortment character (Jarir skews business/enterprise, Amazon.sa's
+    scraped sample skews similarly, Extra and Noon skew consumer) - a
+    combined number can hide that one platform's overlap with Noon looks
+    very different from another's.
+    """
+    print_section("PHASE 2B: CROSS-PLATFORM GAP ANALYSIS (vs NOON)")
 
     raw_noon_products = [p for p in raw_products if p.get('source_platform') == 'Noon']
-
+    unified_list = list(unified_products.values())
     analyzer = NoonGapAnalyzer()
-    gap_rows = analyzer.analyze(list(unified_products.values()), raw_noon_products)
-    summary = analyzer.summarize(gap_rows)
 
-    print(f"📊 Universe products (non-Noon platforms): {summary['total_universe_products']}")
-    print(f"✓ Exact match on Noon: {summary['exact_match_count']} ({summary['exact_match_pct']}%)")
-    print(f"~ Similar available on Noon: {summary['similar_available_count']} ({summary['similar_available_pct']}%)")
-    print(f"✗ Not available on Noon: {summary['not_available_count']} ({summary['not_available_pct']}%)")
+    comparisons = {}
+    for key, label in [(None, 'universe'), ('jarir', 'jarir'), ('extra', 'extra'), ('amazon_sa', 'amazon_sa')]:
+        rows = analyzer.analyze(unified_list, raw_noon_products, base_platform_key=key)
+        summary = analyzer.summarize(rows)
+        comparisons[label] = {'rows': rows, 'summary': summary}
 
-    if summary['missing_by_brand']:
-        print("\nTop brands missing from Noon:")
-        for brand, count in list(summary['missing_by_brand'].items())[:5]:
-            print(f"  - {brand}: {count} products")
+        display_label = 'Universe (Amazon+Jarir+Extra)' if key is None else key
+        print(f"\n[{display_label}] base products: {summary['total_base_products']}")
+        print(f"  ✓ Exact match on Noon: {summary['exact_match_count']} ({summary['exact_match_pct']}%)")
+        print(f"  ~ Similar available: {summary['similar_available_count']} ({summary['similar_available_pct']}%)")
+        print(f"  ✗ Not available: {summary['not_available_count']} ({summary['not_available_pct']}%)")
 
-    return gap_rows, summary
+    return comparisons
 
 
 def phase_3_export_excel(unified_products: dict, raw_products: list,
-                         gap_rows: list = None, gap_summary: dict = None):
+                         comparisons: dict = None):
     """Phase 3: Generate Excel file."""
     print_section("PHASE 3: EXCEL EXPORT")
 
@@ -156,7 +170,7 @@ def phase_3_export_excel(unified_products: dict, raw_products: list,
     excel_path = f'{OUTPUT_DIR}/saudi_laptop_prices_{timestamp}.xlsx'
 
     print(f"📝 Generating Excel file: {os.path.basename(excel_path)}")
-    ExcelExporter.merge_data_and_export(products_list, raw_products, excel_path, gap_rows, gap_summary)
+    ExcelExporter.merge_data_and_export(products_list, raw_products, excel_path, comparisons)
 
     return excel_path
 
@@ -207,16 +221,16 @@ def main():
             json.dump(unified_list, f, ensure_ascii=False, indent=2, default=str)
         print(f"💾 Merged data saved: {merged_file}")
 
-        # Phase 2b: Noon gap analysis
-        gap_rows, gap_summary = phase_2b_gap_analysis(unified_products, raw_products)
+        # Phase 2b: Cross-platform gap analysis (universe + 3 per-platform vs Noon)
+        comparisons = phase_2b_gap_analysis(unified_products, raw_products)
 
-        gap_file = f'{DATA_DIR}/noon_gap_analysis.json'
+        gap_file = f'{DATA_DIR}/gap_analyses.json'
         with open(gap_file, 'w', encoding='utf-8') as f:
-            json.dump({'summary': gap_summary, 'rows': gap_rows}, f, ensure_ascii=False, indent=2, default=str)
-        print(f"💾 Gap analysis saved: {gap_file}")
+            json.dump(comparisons, f, ensure_ascii=False, indent=2, default=str)
+        print(f"💾 Gap analyses saved: {gap_file}")
 
         # Phase 3: Export Excel
-        excel_path = phase_3_export_excel(unified_products, raw_products, gap_rows, gap_summary)
+        excel_path = phase_3_export_excel(unified_products, raw_products, comparisons)
 
         # Phase 4: Dashboard
         phase_4_dashboard()
@@ -227,7 +241,8 @@ def main():
             unified_list, ['title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage', 'graphics_card']
         )
         merge_stats = compute_merge_stats(unified_list, raw_products)
-        log_run(log_path, platform_counts, platform_health, field_coverage, merge_stats, gap_summary, status='success')
+        log_run(log_path, platform_counts, platform_health, field_coverage, merge_stats,
+               comparisons.get('universe', {}).get('summary'), status='success')
 
         # Summary
         print_section("✅ PIPELINE COMPLETE")
@@ -236,7 +251,7 @@ def main():
         print(f"📄 Excel: {os.path.basename(excel_path)}")
         print(f"📊 Raw Data: {raw_file}")
         print(f"📊 Merged Data: {merged_file}")
-        print(f"📊 Gap Analysis: {gap_file}")
+        print(f"📊 Gap Analyses: {gap_file}")
         print(f"📊 Field coverage: {field_coverage}")
         print(f"📊 Merge stats: {merge_stats}")
 

@@ -94,18 +94,23 @@ def get_latest_excel_path():
     return excel_files[0] if excel_files else None
 
 
-def load_gap_analysis():
-    """Load Noon gap analysis results from JSON."""
-    gap_path = BASE_DIR / "data" / "noon_gap_analysis.json"
+def load_gap_analyses():
+    """Load all cross-platform gap analysis comparisons from JSON.
+    Returns a dict of {key: {'rows': DataFrame, 'summary': dict}} for
+    each of universe/jarir/extra/amazon_sa vs Noon."""
+    gap_path = BASE_DIR / "data" / "gap_analyses.json"
     if not gap_path.exists():
-        return None, None
+        return None
     try:
         with open(gap_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        return pd.DataFrame(data.get('rows', [])), data.get('summary', {})
+        return {
+            key: {'rows': pd.DataFrame(val.get('rows', [])), 'summary': val.get('summary', {})}
+            for key, val in data.items()
+        }
     except Exception as e:
-        st.error(f"Error loading gap analysis: {e}")
-        return None, None
+        st.error(f"Error loading gap analyses: {e}")
+        return None
 
 
 def dataframe_to_excel_bytes(df: pd.DataFrame) -> bytes:
@@ -351,22 +356,44 @@ def render_price_comparison(df):
 
 
 def render_gap_analysis():
-    """Renders the Noon assortment gap analysis view."""
-    gap_df, summary = load_gap_analysis()
+    """Renders the cross-platform assortment gap analysis view, with a
+    selector for which base platform to compare against Noon."""
+    comparisons = load_gap_analyses()
 
-    if gap_df is None or len(gap_df) == 0:
+    if not comparisons:
         st.warning("📊 No gap analysis available yet. Run `python3 main.py` to generate it.")
         return
 
-    st.markdown("## 🎯 Noon Assortment Gap Analysis")
+    st.markdown("## 🎯 Assortment Gap Analysis (vs Noon)")
+
+    comparison_options = {
+        'universe': 'Universe (Amazon.sa + Jarir + Extra combined) vs Noon',
+        'jarir': 'Jarir vs Noon',
+        'extra': 'Extra vs Noon',
+        'amazon_sa': 'Amazon.sa vs Noon',
+    }
+    available_keys = [k for k in comparison_options if k in comparisons and len(comparisons[k]['rows']) > 0]
+
+    if not available_keys:
+        st.warning("No comparison data available.")
+        return
+
+    selected_key = st.selectbox(
+        "Comparison", available_keys, format_func=lambda k: comparison_options[k]
+    )
+
+    gap_df = comparisons[selected_key]['rows']
+    summary = comparisons[selected_key]['summary']
+    base_label = 'Universe' if selected_key == 'universe' else comparison_options[selected_key].split(' vs')[0]
+
     st.markdown(
-        "Compares the full product universe (everything found on Amazon.sa, Jarir, and Extra) "
-        "against Noon's catalog, to identify SKUs Noon is missing or only partially covers."
+        f"Compares **{base_label}**'s products against Noon's catalog, to identify SKUs "
+        f"Noon is missing or only partially covers."
     )
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric("Universe Size", summary.get('total_universe_products', 0))
+        st.metric(f"{base_label} Size", summary.get('total_base_products', 0))
     with col2:
         st.metric("Exact Match on Noon", f"{summary.get('exact_match_count', 0)} ({summary.get('exact_match_pct', 0)}%)")
     with col3:
@@ -404,7 +431,7 @@ def render_gap_analysis():
 
         series_df['series'] = series_df['model_name'].apply(_extract_series)
 
-        series_summary = series_df.groupby(['series', 'noon_status']).size().unstack(fill_value=0)
+        series_summary = series_df.groupby(['series', 'compare_status']).size().unstack(fill_value=0)
         for status in ['Exact Match', 'Similar Available', 'Not Available']:
             if status not in series_summary.columns:
                 series_summary[status] = 0
@@ -419,11 +446,11 @@ def render_gap_analysis():
 
     st.markdown("### 🔍 Filter")
     status_options = ['All', 'Not Available', 'Similar Available', 'Exact Match']
-    selected_status = st.selectbox("Noon Status", status_options)
+    selected_status = st.selectbox("Noon Status", status_options, key="gap_status_select")
 
     filtered = gap_df.copy()
     if selected_status != 'All':
-        filtered = filtered[filtered['noon_status'] == selected_status]
+        filtered = filtered[filtered['compare_status'] == selected_status]
 
     if 'category' in filtered.columns:
         categories = ['All'] + sorted(filtered['category'].dropna().unique().tolist())
@@ -434,9 +461,10 @@ def render_gap_analysis():
     st.markdown(f"### 📋 Results ({len(filtered)} products)")
 
     display_cols = [
-        'title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage',
-        'available_on', 'best_price_elsewhere', 'noon_status',
-        'noon_price', 'noon_similar_product', 'match_confidence'
+        'title', 'category', 'brand', 'model_name', 'processor', 'processor_full',
+        'ram', 'storage', 'graphics_card', 'ai_classification',
+        'available_on', 'base_price', 'base_link', 'compare_status',
+        'compare_price', 'compare_link', 'compare_similar_product', 'match_confidence'
     ]
     available_cols = [c for c in display_cols if c in filtered.columns]
     show_df = filtered[available_cols].copy().fillna('N/A')
@@ -447,8 +475,9 @@ def render_gap_analysis():
     st.download_button(
         label="📥 Download Gap Analysis (CSV)",
         data=csv,
-        file_name=f"noon_gap_analysis_{datetime.now().strftime('%Y-%m-%d')}.csv",
-        mime="text/csv"
+        file_name=f"gap_analysis_{selected_key}_{datetime.now().strftime('%Y-%m-%d')}.csv",
+        mime="text/csv",
+        key="gap_csv_download"
     )
 
     st.info(

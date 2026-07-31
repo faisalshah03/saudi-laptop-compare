@@ -196,13 +196,16 @@ class ExcelExporter:
         file_size = os.path.getsize(self.output_path)
         print(f"  File size: {file_size / 1024:.1f} KB")
 
-    def create_gap_analysis_sheet(self, gap_rows: List[Dict], summary: Dict):
-        """Create Noon assortment gap analysis sheet."""
-        ws = self.workbook.create_sheet('Noon Gap Analysis')
+    def create_gap_analysis_sheet(self, sheet_name: str, base_label: str,
+                                 gap_rows: List[Dict], summary: Dict):
+        """Create one cross-platform gap analysis sheet (base platform
+        vs Noon). Called once per comparison (universe, Jarir, Extra,
+        Amazon.sa) to produce separate sheets."""
+        ws = self.workbook.create_sheet(sheet_name)
 
         # Summary block at top
         summary_lines = [
-            ('Total products in universe (Amazon/Jarir/Extra):', summary.get('total_universe_products')),
+            (f'Total {base_label} products (base):', summary.get('total_base_products')),
             ('Exact match on Noon:', f"{summary.get('exact_match_count')} ({summary.get('exact_match_pct')}%)"),
             ('Similar product available on Noon:', f"{summary.get('similar_available_count')} ({summary.get('similar_available_pct')}%)"),
             ('Not available on Noon at all:', f"{summary.get('not_available_count')} ({summary.get('not_available_pct')}%)"),
@@ -216,12 +219,14 @@ class ExcelExporter:
         columns = [
             ('master_sku', 'Master SKU'), ('title', 'Title'), ('category', 'Category'),
             ('brand', 'Brand'), ('model_name', 'Model'), ('processor', 'Processor'),
-            ('ram', 'RAM'), ('storage', 'Storage'), ('available_on', 'Available On'),
-            ('best_price_elsewhere', 'Best Price Elsewhere'), ('best_price_platform', 'Best Price Platform'),
-            ('noon_status', 'Noon Status'), ('noon_price', 'Noon Price'),
-            ('price_diff_vs_noon', 'Price Diff vs Noon'),
-            ('noon_similar_product', 'Similar Noon Product'), ('match_confidence', 'Match Confidence'),
-            ('noon_link', 'Noon Link'),
+            ('processor_full', 'Processor (Full)'), ('ram', 'RAM'), ('storage', 'Storage'),
+            ('graphics_card', 'GPU'), ('ai_classification', 'AI'),
+            ('available_on', 'Available On'),
+            ('base_price', f'{base_label} Price'), ('base_link', f'{base_label} Link'),
+            ('compare_status', 'Noon Status'), ('compare_price', 'Noon Price'),
+            ('price_diff_vs_compare', 'Price Diff vs Noon'),
+            ('compare_similar_product', 'Similar Noon Product'), ('match_confidence', 'Match Confidence'),
+            ('compare_link', 'Noon Link'),
         ]
 
         for col_idx, (field, header) in enumerate(columns, start=1):
@@ -237,11 +242,11 @@ class ExcelExporter:
         }
 
         for row_idx, row_data in enumerate(gap_rows, start=header_row + 1):
-            status = row_data.get('noon_status')
+            status = row_data.get('compare_status')
             for col_idx, (field, _) in enumerate(columns, start=1):
                 value = row_data.get(field)
                 cell = ws.cell(row=row_idx, column=col_idx, value=value if value is not None else 'N/A')
-                if field == 'noon_status' and status in status_fills:
+                if field == 'compare_status' and status in status_fills:
                     cell.fill = status_fills[status]
 
         ws.freeze_panes = f'A{header_row + 1}'
@@ -249,8 +254,7 @@ class ExcelExporter:
 
     @staticmethod
     def merge_data_and_export(unified_products: List[Dict], raw_products: List[Dict],
-                             output_path: str, gap_rows: List[Dict] = None,
-                             gap_summary: Dict = None):
+                             output_path: str, comparisons: Dict[str, Dict] = None):
         """
         Convenience method to create and populate Excel file.
 
@@ -258,14 +262,28 @@ class ExcelExporter:
             unified_products: List of merged/unified products
             raw_products: List of all raw scraped products
             output_path: Where to save the Excel file
-            gap_rows: Optional Noon gap-analysis rows (see gap_analyzer.py)
-            gap_summary: Optional Noon gap-analysis summary stats
+            comparisons: Optional dict of {key: {'rows': [...], 'summary': {...}}}
+                from gap_analyzer.py, e.g. {'universe': ..., 'jarir': ...,
+                'extra': ..., 'amazon_sa': ...} - one sheet is created per entry
         """
         exporter = ExcelExporter(output_path)
         exporter.create_raw_data_sheet(raw_products)
         exporter.create_comparison_sheet(unified_products)
-        if gap_rows is not None:
-            exporter.create_gap_analysis_sheet(gap_rows, gap_summary or {})
+
+        if comparisons:
+            sheet_specs = [
+                ('universe', 'Noon Gap - Universe', 'Universe'),
+                ('jarir', 'Noon Gap - Jarir', 'Jarir'),
+                ('extra', 'Noon Gap - Extra', 'Extra'),
+                ('amazon_sa', 'Noon Gap - Amazon.sa', 'Amazon.sa'),
+            ]
+            for key, sheet_name, base_label in sheet_specs:
+                comparison = comparisons.get(key)
+                if comparison:
+                    exporter.create_gap_analysis_sheet(
+                        sheet_name, base_label, comparison['rows'], comparison['summary']
+                    )
+
         exporter.save()
 
         return output_path
