@@ -192,9 +192,61 @@ class ExcelExporter:
         file_size = os.path.getsize(self.output_path)
         print(f"  File size: {file_size / 1024:.1f} KB")
 
+    def create_gap_analysis_sheet(self, gap_rows: List[Dict], summary: Dict):
+        """Create Noon assortment gap analysis sheet."""
+        ws = self.workbook.create_sheet('Noon Gap Analysis')
+
+        # Summary block at top
+        summary_lines = [
+            ('Total products in universe (Amazon/Jarir/Extra):', summary.get('total_universe_products')),
+            ('Exact match on Noon:', f"{summary.get('exact_match_count')} ({summary.get('exact_match_pct')}%)"),
+            ('Similar product available on Noon:', f"{summary.get('similar_available_count')} ({summary.get('similar_available_pct')}%)"),
+            ('Not available on Noon at all:', f"{summary.get('not_available_count')} ({summary.get('not_available_pct')}%)"),
+        ]
+        for i, (label, value) in enumerate(summary_lines, start=1):
+            ws.cell(row=i, column=1, value=label).font = Font(bold=True)
+            ws.cell(row=i, column=2, value=value)
+
+        header_row = len(summary_lines) + 2
+
+        columns = [
+            ('master_sku', 'Master SKU'), ('title', 'Title'), ('category', 'Category'),
+            ('brand', 'Brand'), ('model_name', 'Model'), ('processor', 'Processor'),
+            ('ram', 'RAM'), ('storage', 'Storage'), ('available_on', 'Available On'),
+            ('best_price_elsewhere', 'Best Price Elsewhere'), ('best_price_platform', 'Best Price Platform'),
+            ('noon_status', 'Noon Status'), ('noon_price', 'Noon Price'),
+            ('price_diff_vs_noon', 'Price Diff vs Noon'),
+            ('noon_similar_product', 'Similar Noon Product'), ('match_confidence', 'Match Confidence'),
+            ('noon_link', 'Noon Link'),
+        ]
+
+        for col_idx, (field, header) in enumerate(columns, start=1):
+            cell = ws.cell(row=header_row, column=col_idx, value=header)
+            cell.font = Font(bold=True, color='FFFFFF')
+            cell.fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+            ws.column_dimensions[get_column_letter(col_idx)].width = 20
+
+        status_fills = {
+            'Exact Match': PatternFill(start_color='C6EFCE', end_color='C6EFCE', fill_type='solid'),
+            'Similar Available': PatternFill(start_color='FFEB9C', end_color='FFEB9C', fill_type='solid'),
+            'Not Available': PatternFill(start_color='FFC7CE', end_color='FFC7CE', fill_type='solid'),
+        }
+
+        for row_idx, row_data in enumerate(gap_rows, start=header_row + 1):
+            status = row_data.get('noon_status')
+            for col_idx, (field, _) in enumerate(columns, start=1):
+                value = row_data.get(field)
+                cell = ws.cell(row=row_idx, column=col_idx, value=value if value is not None else 'N/A')
+                if field == 'noon_status' and status in status_fills:
+                    cell.fill = status_fills[status]
+
+        ws.freeze_panes = f'A{header_row + 1}'
+        ws.auto_filter.ref = f'A{header_row}:{get_column_letter(len(columns))}{header_row + len(gap_rows)}'
+
     @staticmethod
     def merge_data_and_export(unified_products: List[Dict], raw_products: List[Dict],
-                             output_path: str):
+                             output_path: str, gap_rows: List[Dict] = None,
+                             gap_summary: Dict = None):
         """
         Convenience method to create and populate Excel file.
 
@@ -202,10 +254,14 @@ class ExcelExporter:
             unified_products: List of merged/unified products
             raw_products: List of all raw scraped products
             output_path: Where to save the Excel file
+            gap_rows: Optional Noon gap-analysis rows (see gap_analyzer.py)
+            gap_summary: Optional Noon gap-analysis summary stats
         """
         exporter = ExcelExporter(output_path)
         exporter.create_raw_data_sheet(raw_products)
         exporter.create_comparison_sheet(unified_products)
+        if gap_rows is not None:
+            exporter.create_gap_analysis_sheet(gap_rows, gap_summary or {})
         exporter.save()
 
         return output_path

@@ -17,8 +17,10 @@ sys.path.insert(0, str(project_root / 'src'))
 from config.config import FIRECRAWL_API_KEY, OUTPUT_DIR, DATA_DIR
 from scrapers.jarir_scraper import JarirScraper
 from scrapers.amazon_scraper import AmazonScraper
+from scrapers.noon_scraper import NoonScraper
 from utils.product_matcher import ProductMatcher
 from utils.excel_exporter import ExcelExporter
+from utils.gap_analyzer import NoonGapAnalyzer
 
 
 def print_section(title: str):
@@ -34,14 +36,13 @@ def phase_1_scrape() -> list:
 
     all_products = []
 
-    # Scrape Jarir
-    # Note: Jarir's listing pages don't support URL-based pagination (?p=N
-    # returns empty) - only the first page's worth of products (~12/category)
-    # can be collected until we add scroll/interaction-based scraping.
+    # Scrape Jarir (via their real Constructor.io-backed search API - see
+    # jarir_scraper.py docstring for why the old category-page approach
+    # only ever surfaced ~12 curated products instead of the real catalog)
     print("📍 Scraping Jarir.com...")
     try:
         jarir = JarirScraper()
-        jarir_products = jarir.scrape_all(max_per_category=30)
+        jarir_products = jarir.scrape_all(max_per_category=1000)
         print(f"✓ Jarir: {len(jarir_products)} products")
         all_products.extend(jarir_products)
     except Exception as e:
@@ -57,7 +58,18 @@ def phase_1_scrape() -> list:
     except Exception as e:
         print(f"✗ Amazon.sa Error: {e}")
 
-    # TODO: Add Extra.com, Noon.com scrapers here
+    # Scrape Noon.com (Saudi) - requires Firecrawl stealth proxy, see
+    # noon_scraper.py docstring for why
+    print("\n📍 Scraping Noon.com (Saudi)...")
+    try:
+        noon = NoonScraper()
+        noon_products = noon.scrape_all(max_per_category=200)
+        print(f"✓ Noon: {len(noon_products)} products")
+        all_products.extend(noon_products)
+    except Exception as e:
+        print(f"✗ Noon Error: {e}")
+
+    # TODO: Add Extra.com scraper
 
     print(f"\n✓ Phase 1 Complete: {len(all_products)} total products scraped\n")
     return all_products
@@ -82,7 +94,31 @@ def phase_2_merge(raw_products: list) -> dict:
     return unified_products
 
 
-def phase_3_export_excel(unified_products: dict, raw_products: list):
+def phase_2b_gap_analysis(unified_products: dict, raw_products: list):
+    """Phase 2b: Noon assortment gap analysis."""
+    print_section("PHASE 2B: NOON ASSORTMENT GAP ANALYSIS")
+
+    raw_noon_products = [p for p in raw_products if p.get('source_platform') == 'Noon']
+
+    analyzer = NoonGapAnalyzer()
+    gap_rows = analyzer.analyze(list(unified_products.values()), raw_noon_products)
+    summary = analyzer.summarize(gap_rows)
+
+    print(f"📊 Universe products (non-Noon platforms): {summary['total_universe_products']}")
+    print(f"✓ Exact match on Noon: {summary['exact_match_count']} ({summary['exact_match_pct']}%)")
+    print(f"~ Similar available on Noon: {summary['similar_available_count']} ({summary['similar_available_pct']}%)")
+    print(f"✗ Not available on Noon: {summary['not_available_count']} ({summary['not_available_pct']}%)")
+
+    if summary['missing_by_brand']:
+        print("\nTop brands missing from Noon:")
+        for brand, count in list(summary['missing_by_brand'].items())[:5]:
+            print(f"  - {brand}: {count} products")
+
+    return gap_rows, summary
+
+
+def phase_3_export_excel(unified_products: dict, raw_products: list,
+                         gap_rows: list = None, gap_summary: dict = None):
     """Phase 3: Generate Excel file."""
     print_section("PHASE 3: EXCEL EXPORT")
 
@@ -96,7 +132,7 @@ def phase_3_export_excel(unified_products: dict, raw_products: list):
     excel_path = f'{OUTPUT_DIR}/saudi_laptop_prices_{timestamp}.xlsx'
 
     print(f"📝 Generating Excel file: {os.path.basename(excel_path)}")
-    ExcelExporter.merge_data_and_export(products_list, raw_products, excel_path)
+    ExcelExporter.merge_data_and_export(products_list, raw_products, excel_path, gap_rows, gap_summary)
 
     return excel_path
 
@@ -142,8 +178,16 @@ def main():
             json.dump(list(unified_products.values()), f, ensure_ascii=False, indent=2, default=str)
         print(f"💾 Merged data saved: {merged_file}")
 
+        # Phase 2b: Noon gap analysis
+        gap_rows, gap_summary = phase_2b_gap_analysis(unified_products, raw_products)
+
+        gap_file = f'{DATA_DIR}/noon_gap_analysis.json'
+        with open(gap_file, 'w', encoding='utf-8') as f:
+            json.dump({'summary': gap_summary, 'rows': gap_rows}, f, ensure_ascii=False, indent=2, default=str)
+        print(f"💾 Gap analysis saved: {gap_file}")
+
         # Phase 3: Export Excel
-        excel_path = phase_3_export_excel(unified_products, raw_products)
+        excel_path = phase_3_export_excel(unified_products, raw_products, gap_rows, gap_summary)
 
         # Phase 4: Dashboard
         phase_4_dashboard()
@@ -155,6 +199,7 @@ def main():
         print(f"📄 Excel: {os.path.basename(excel_path)}")
         print(f"📊 Raw Data: {raw_file}")
         print(f"📊 Merged Data: {merged_file}")
+        print(f"📊 Gap Analysis: {gap_file}")
 
     except Exception as e:
         print(f"\n❌ Error: {e}")

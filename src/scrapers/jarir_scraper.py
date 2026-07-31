@@ -1,266 +1,223 @@
-"""Jarir.com Laptop & Desktop Scraper"""
+"""
+Jarir.com Laptop & Desktop Scraper
+
+Uses Jarir's real backend search API (Constructor.io) directly instead of
+scraping rendered HTML. Jarir's public "Laptops"/"Desktops" landing pages
+are curated marketing widgets showing ~12 handpicked SKUs each - NOT the
+full catalog. The real catalog (900+ laptops, 400+ desktop-category
+listings) is only reachable through site search, which is backed by
+Constructor.io using a public, browser-exposed search-only API key.
+"""
+
 import json
 import re
+import time
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import sys
 import os
 
-# Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config.config import FIRECRAWL_API_KEY, PLATFORMS, TIMESTAMP
-from utils.firecrawl_helper import FirecrawlHelper
+from config.config import TIMESTAMP
+
+try:
+    import requests
+except ImportError:
+    requests = None
+
+
+# Public Constructor.io search-only key, observed in Jarir's own storefront
+# network traffic (browser-exposed by design, read-only search access).
+CNSTRC_KEY = 'key_KcSYfmQTEwRpBnd9'
+CNSTRC_BASE = 'https://ac.cnstrc.com/search'
+
+# Product-type allowlists to exclude accessories/peripherals that merely
+# mention "laptop"/"desktop" in their title (bags, keyboards, chargers...).
+LAPTOP_PTYPES = {'Laptop', 'Gaming Laptop', '2-in-1 Laptop - Convertible'}
+DESKTOP_PTYPE_SUBSTRING = 'Desktop Computer'  # covers "Desktop Computer", "Gaming Desktop Computer", etc.
 
 
 class JarirScraper:
     def __init__(self):
-        self.firecrawl = FirecrawlHelper(FIRECRAWL_API_KEY)
+        if requests is None:
+            raise ImportError("requests not installed. Run: python3 -m pip install requests")
         self.platform_name = 'Jarir'
         self.platform_key = 'jarir'
         self.products = []
+        self.session = requests.Session()
+        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'})
 
-    def normalize_price(self, price_str: str) -> float:
-        """Convert price string to float, handling currency symbols and commas."""
-        if not price_str:
-            return None
-
-        # Remove common currency symbols and whitespace
-        price_str = str(price_str).replace('SR', '').replace('ر.س', '')\
-            .replace('SAR', '').replace('﷼', '').strip()
-
-        # Remove commas and spaces
-        price_str = price_str.replace(',', '').replace(' ', '')
-
+    def _search_page(self, query: str, page: int, per_page: int = 100) -> Optional[Dict]:
+        """Call Jarir's Constructor.io-backed search API for one page of results."""
+        params = {
+            'c': 'ciojs-2.1447.2',
+            'key': CNSTRC_KEY,
+            'num_results_per_page': per_page,
+            'page': page,
+        }
         try:
-            return float(price_str)
-        except ValueError:
+            resp = self.session.get(f'{CNSTRC_BASE}/{query}', params=params, timeout=20)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception as e:
+            print(f"[Jarir] API error on page {page}: {e}")
             return None
 
-    def parse_products_from_markdown(self, markdown: str, category: str = None) -> List[Dict[str, Any]]:
-        """
-        Parse products from Firecrawl's markdown output.
-        Pattern: SR PRICE](actual_product_url)
-        """
-        products = []
+    def normalize_price(self, value) -> Optional[float]:
+        if value is None or value == '':
+            return None
+        try:
+            return float(str(value).replace(',', '').strip())
+        except (ValueError, TypeError):
+            return None
 
-        # Find all product URLs in markdown (paths with /sa-en/)
-        product_urls = re.findall(
-            r'https://www\.jarir\.com/sa-en/[^)]+\.html[^)\s]*',
-            markdown
-        )
+    def _passes_type_filter(self, ptyp: str, category: str) -> bool:
+        if not ptyp:
+            return False
+        if category == 'Laptop':
+            return ptyp in LAPTOP_PTYPES
+        if category == 'Desktop':
+            return DESKTOP_PTYPE_SUBSTRING in ptyp
+        return False
 
-        print(f"[Parser] Found {len(product_urls)} product URLs")
+    def _map_result_to_product(self, hit: Dict, category: str) -> Optional[Dict[str, Any]]:
+        """Convert one Constructor.io search hit into our standard product schema."""
+        data = hit.get('data', {})
+        meta = data.get('metadata', {})
 
-        # Process each URL
-        for url in product_urls:
-            # Find the section before this URL
-            url_index = markdown.find(url)
-            if url_index < 0:
-                continue
+        ptyp = meta.get('ptyp', '')
+        if not self._passes_type_filter(ptyp, category):
+            return None
 
-            # Look back 1500 chars for the title and price
-            section_start = max(0, url_index - 1500)
-            section = markdown[section_start:url_index + len(url)]
+        title = hit.get('value') or meta.get('name')
+        if not title:
+            return None
 
-            # Extract title - find the latest [![...] before the URL
-            title_matches = re.findall(r'\[!\[([^\]]+)\]', section)
-            title = title_matches[-1] if title_matches else None
+        price = self.normalize_price(data.get('price'))
+        if price is None:
+            return None
 
-            if not title or len(title) < 5:
-                continue
+        url_slug = data.get('url', '')
+        product_url = f'https://www.jarir.com/sa-en/{url_slug}' if url_slug else ''
 
-            # Extract price with discount handling
-            # Pattern: "SR XXXX\nSR YYYY\nSave: SR ZZZ" or just "SR XXXX"
-            # The actual current price is the one NOT preceded by "Save:"
+        # Try to pull a final/discounted price out of the embedded GTM blob if present
+        original_price = None
+        gtm_raw = meta.get('additionalDataToReturn')
+        if gtm_raw:
+            try:
+                gtm = json.loads(gtm_raw)
+                final_price = self.normalize_price(gtm.get('GTM_final_price'))
+                if final_price is not None and final_price < price:
+                    original_price = price
+                    price = final_price
+            except (json.JSONDecodeError, TypeError):
+                pass
 
-            # Look for price pattern in section: "\nSR XXXX\n" NOT followed by "Save"
-            price_pattern = r'\n\s*SR\s+([\d,]+)\s*\n(?!.*Save)'
-            price_match = re.search(price_pattern, section, re.DOTALL)
+        product = {
+            'source_platform': self.platform_name,
+            'category': category,
+            'subtype': 'Gaming' if 'Gaming' in ptyp else ('2-in-1 / Convertible' if '2-in-1' in ptyp else 'Standard'),
+            'product_url': product_url,
+            'raw_title': title,
+            'title': title,
+            'price': price,
+            'original_price': original_price,
+            'currency': 'SAR',
+            'availability': 'In Stock',
+            'rating': None,
+            'review_count': 0,
+            'image_url': data.get('image_url', ''),
+            'scraped_at': TIMESTAMP,
+            'brand': meta.get('brand'),
+            'model_name': meta.get('seri') or meta.get('model'),
+            'model_number': meta.get('moch') or data.get('sku'),
+            'processor': meta.get('prcr') or meta.get('prse'),
+            'ram': meta.get('symm'),
+            'storage': meta.get('tsca'),
+            'graphics_card': meta.get('gyro') or meta.get('grpc'),
+        }
+        return product
 
-            if price_match:
-                price = self.normalize_price(price_match.group(1))
-            else:
-                # Fallback: extract all prices and use the first one (usually current price)
-                all_prices = re.findall(r'SR\s+([\d,]+)', section)
-                if all_prices:
-                    # Filter out very small prices (like discount amounts < 100)
-                    valid_prices = [p for p in all_prices if self.normalize_price(p) and self.normalize_price(p) > 100]
-                    price = self.normalize_price(valid_prices[0]) if valid_prices else None
-                else:
-                    price = None
-
-            if price is None:
-                continue
-
-            # Extract rating from section
-            rating_match = re.search(r'\n(\d\.\d)\n', section)
-            rating = float(rating_match.group(1)) if rating_match else None
-
-            # Extract specs from title
-            specs = self._extract_specs(title)
-
-            product = {
-                'source_platform': self.platform_name,
-                'category': category,
-                'product_url': url,
-                'raw_title': title,
-                'price': price,
-                'original_price': None,
-                'currency': 'SAR',
-                'availability': 'In Stock',
-                'rating': rating,
-                'review_count': 0,
-                'image_url': '',
-                'scraped_at': TIMESTAMP,
-                **specs
-            }
-
-            products.append(product)
-            print(f"  ✓ {title[:60]} - ₪{price:,.0f}" + (f" ({rating}⭐)" if rating else ""))
-
-        return products
-
-    def _extract_specs(self, title: str) -> Dict[str, str]:
-        """Extract specs from product title."""
-        specs = {}
-
-        # Brand
-        brands = ['Lenovo', 'HP', 'Dell', 'Acer', 'ASUS', 'MSI', 'Apple', 'Razer']
-        for brand in brands:
-            if brand.lower() in title.lower():
-                specs['brand'] = brand
-                break
-
-        # Processor
-        processor_match = re.search(
-            r'(Intel Core [i3579]-\d+|AMD Ryzen \d+|Apple M\d|Intel Core Ultra)',
-            title,
-            re.IGNORECASE
-        )
-        if processor_match:
-            specs['processor'] = processor_match.group(0)
-
-        # RAM
-        ram_match = re.search(r'(\d+)\s*GB\s*RAM', title, re.IGNORECASE)
-        if ram_match:
-            specs['ram'] = f"{ram_match.group(1)}GB"
-
-        # Storage
-        storage_match = re.search(r'(\d+)\s*(GB|TB)\s*(?:SSD|HDD|NVMe)', title, re.IGNORECASE)
-        if storage_match:
-            specs['storage'] = f"{storage_match.group(1)}{storage_match.group(2)}"
-
-        # GPU
-        gpu_match = re.search(
-            r'(NVIDIA|AMD|Intel)\s*(?:GeForce|Radeon)?\s*[\w\d\s]+(?:Graphics|GPU)',
-            title,
-            re.IGNORECASE
-        )
-        if gpu_match:
-            specs['graphics_card'] = gpu_match.group(0).strip()
-
-        return specs
-
-    def scrape_listing(self, url: str, category: str, max_products: int = 50,
-                       max_pages: int = 5) -> List[Dict[str, Any]]:
-        """Scrape a product listing page, following pagination (?p=N) until
-        max_products is reached, a page returns no new products, or
-        max_pages is hit."""
+    def scrape_category(self, query: str, category: str, max_products: int = 1000) -> List[Dict[str, Any]]:
+        """Scrape all products for a category via paginated search API calls."""
         print(f"\n{'='*60}")
-        print(f"Scraping Jarir {category}: {url}")
+        print(f"Scraping Jarir {category} (query='{query}') via search API")
         print(f"{'='*60}")
 
-        category_products = []
+        per_page = 100
+        collected = []
         seen_urls = set()
+        page = 1
+        total_num_results = None
 
-        for page in range(1, max_pages + 1):
-            page_url = url if page == 1 else f"{url}?p={page}"
-
-            markdown = self.firecrawl.extract_products_from_page(page_url)
-
-            if not markdown or len(markdown) < 200:
-                print(f"[Jarir] Page {page}: empty/too short response, stopping pagination")
+        while len(collected) < max_products:
+            result = self._search_page(query, page, per_page)
+            if not result:
                 break
 
-            print(f"[Jarir] Page {page}: got content ({len(markdown)} chars), parsing...")
-            page_products = self.parse_products_from_markdown(markdown, category=category)
+            response = result.get('response', {})
+            if total_num_results is None:
+                total_num_results = response.get('total_num_results')
+                print(f"[Jarir] Reported total matches for '{query}': {total_num_results}")
 
-            new_products = [p for p in page_products if p['product_url'] not in seen_urls]
-
-            if not new_products:
-                print(f"[Jarir] Page {page}: no new products, stopping pagination")
+            hits = response.get('results', [])
+            if not hits:
+                print(f"[Jarir] Page {page}: no more results, stopping")
                 break
 
-            for p in new_products:
-                seen_urls.add(p['product_url'])
-            category_products.extend(new_products)
+            page_added = 0
+            for hit in hits:
+                product = self._map_result_to_product(hit, category)
+                if not product or product['product_url'] in seen_urls:
+                    continue
+                seen_urls.add(product['product_url'])
+                collected.append(product)
+                page_added += 1
 
-            if len(category_products) >= max_products:
+            print(f"[Jarir] Page {page}: {len(hits)} raw hits -> {page_added} matched {category} products (total so far: {len(collected)})")
+
+            # Stop once we've paged past the API's reported total
+            if page * per_page >= (total_num_results or 0):
                 break
 
-        category_products = category_products[:max_products]
-        self.products.extend(category_products)
-        return category_products
+            page += 1
+            time.sleep(0.3)  # be polite
 
-    def scrape_laptops(self, max_products: int = 50) -> List[Dict[str, Any]]:
-        """Scrape Jarir laptops listing."""
-        return self.scrape_listing(
-            PLATFORMS['jarir']['laptop_url'],
-            'Laptop',
-            max_products
-        )
+        collected = collected[:max_products]
+        self.products.extend(collected)
+        print(f"✓ Jarir {category}: {len(collected)} genuine products collected")
+        return collected
 
-    def scrape_desktops(self, max_products: int = 50) -> List[Dict[str, Any]]:
-        """Scrape Jarir desktop computers listing."""
-        return self.scrape_listing(
-            PLATFORMS['jarir']['desktop_url'],
-            'Desktop',
-            max_products
-        )
+    def scrape_laptops(self, max_products: int = 1000) -> List[Dict[str, Any]]:
+        return self.scrape_category('laptop', 'Laptop', max_products)
 
-    def scrape_all(self, max_per_category: int = 50) -> List[Dict[str, Any]]:
-        """Scrape both laptops and desktops."""
+    def scrape_desktops(self, max_products: int = 1000) -> List[Dict[str, Any]]:
+        return self.scrape_category('desktop', 'Desktop', max_products)
+
+    def scrape_all(self, max_per_category: int = 1000) -> List[Dict[str, Any]]:
         self.scrape_laptops(max_per_category)
         self.scrape_desktops(max_per_category)
         return self.products
 
     def get_products(self) -> List[Dict[str, Any]]:
-        """Return all scraped products."""
         return self.products
 
 
 if __name__ == '__main__':
     scraper = JarirScraper()
-
-    # Scrape with smaller batch for testing
-    products = scraper.scrape_all(max_per_category=10)
+    products = scraper.scrape_all(max_per_category=1000)
 
     print(f"\n{'='*60}")
     print(f"SUMMARY: Scraped {len(products)} products from Jarir")
     print(f"{'='*60}")
 
-    # Display first 5 products
     if products:
-        print("\nFirst 5 Products (Structured Data):")
-        for i, product in enumerate(products[:5], 1):
-            print(f"\n{i}. {product['raw_title'][:70]}")
-            print(f"   Price: ₪{product['price']:,.0f}")
-            print(f"   URL: {product['product_url'][:60]}")
-            if product.get('rating'):
-                print(f"   Rating: {product['rating']} ⭐")
-            if product.get('processor'):
-                print(f"   Processor: {product['processor']}")
-            if product.get('ram'):
-                print(f"   RAM: {product['ram']}")
+        for p in products[:5]:
+            print(f"\n- [{p['category']}] {p['raw_title'][:70]}")
+            print(f"  Price: SAR {p['price']:,.0f}  Brand: {p.get('brand')}  CPU: {p.get('processor')}")
 
-        # Save to JSON for inspection
         output_dir = '/Users/faisals/Documents/saudi-laptop-compare/data'
         os.makedirs(output_dir, exist_ok=True)
-
-        output_file = f'{output_dir}/jarir_sample.json'
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(f'{output_dir}/jarir_sample.json', 'w', encoding='utf-8') as f:
             json.dump(products[:10], f, ensure_ascii=False, indent=2, default=str)
-        print(f"\n✓ Sample data saved to {output_file}")
-    else:
-        print("⚠️  No products scraped. Check markdown parsing.")

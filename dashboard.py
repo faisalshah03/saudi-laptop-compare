@@ -94,6 +94,20 @@ def get_latest_excel_path():
     return excel_files[0] if excel_files else None
 
 
+def load_gap_analysis():
+    """Load Noon gap analysis results from JSON."""
+    gap_path = BASE_DIR / "data" / "noon_gap_analysis.json"
+    if not gap_path.exists():
+        return None, None
+    try:
+        with open(gap_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return pd.DataFrame(data.get('rows', [])), data.get('summary', {})
+    except Exception as e:
+        st.error(f"Error loading gap analysis: {e}")
+        return None, None
+
+
 def dataframe_to_excel_bytes(df: pd.DataFrame) -> bytes:
     """Fallback: build a simple Excel file in-memory from the filtered dataframe."""
     buffer = io.BytesIO()
@@ -126,6 +140,17 @@ def main():
         """)
         return
 
+    tab_prices, tab_gap = st.tabs(["📊 Price Comparison", "🎯 Noon Assortment Gap"])
+
+    with tab_prices:
+        render_price_comparison(df)
+
+    with tab_gap:
+        render_gap_analysis()
+
+
+def render_price_comparison(df):
+    """Renders the price comparison table, filters, and downloads."""
     # Sidebar filters
     st.sidebar.markdown("## 🔍 Filters")
 
@@ -301,10 +326,84 @@ def main():
     st.markdown("---")
     st.markdown("### ℹ️ About")
     st.markdown("""
-    - **Data Source**: Amazon.sa, Jarir.com, Extra.com, Noon.com
+    - **Data Source**: Amazon.sa, Jarir.com, Noon.com (Extra.com coming soon)
     - **Categories**: Laptops & Desktops
     - **Access this dashboard from any device** at this page's URL
     """)
+
+
+def render_gap_analysis():
+    """Renders the Noon assortment gap analysis view."""
+    gap_df, summary = load_gap_analysis()
+
+    if gap_df is None or len(gap_df) == 0:
+        st.warning("📊 No gap analysis available yet. Run `python3 main.py` to generate it.")
+        return
+
+    st.markdown("## 🎯 Noon Assortment Gap Analysis")
+    st.markdown(
+        "Compares the full product universe (everything found on Amazon.sa, Jarir, and Extra) "
+        "against Noon's catalog, to identify SKUs Noon is missing or only partially covers."
+    )
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Universe Size", summary.get('total_universe_products', 0))
+    with col2:
+        st.metric("Exact Match on Noon", f"{summary.get('exact_match_count', 0)} ({summary.get('exact_match_pct', 0)}%)")
+    with col3:
+        st.metric("Similar Available", f"{summary.get('similar_available_count', 0)} ({summary.get('similar_available_pct', 0)}%)")
+    with col4:
+        st.metric("Missing from Noon", f"{summary.get('not_available_count', 0)} ({summary.get('not_available_pct', 0)}%)",
+                  delta_color="inverse")
+
+    # Missing-by-brand breakdown
+    missing_by_brand = summary.get('missing_by_brand', {})
+    if missing_by_brand:
+        st.markdown("### 📉 Top Brands Missing from Noon")
+        brand_df = pd.DataFrame(list(missing_by_brand.items()), columns=['Brand', 'Missing SKUs']).head(10)
+        st.bar_chart(brand_df.set_index('Brand'))
+
+    st.markdown("### 🔍 Filter")
+    status_options = ['All', 'Not Available', 'Similar Available', 'Exact Match']
+    selected_status = st.selectbox("Noon Status", status_options)
+
+    filtered = gap_df.copy()
+    if selected_status != 'All':
+        filtered = filtered[filtered['noon_status'] == selected_status]
+
+    if 'category' in filtered.columns:
+        categories = ['All'] + sorted(filtered['category'].dropna().unique().tolist())
+        selected_cat = st.selectbox("Category", categories, key="gap_category")
+        if selected_cat != 'All':
+            filtered = filtered[filtered['category'] == selected_cat]
+
+    st.markdown(f"### 📋 Results ({len(filtered)} products)")
+
+    display_cols = [
+        'title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage',
+        'available_on', 'best_price_elsewhere', 'noon_status',
+        'noon_price', 'noon_similar_product', 'match_confidence'
+    ]
+    available_cols = [c for c in display_cols if c in filtered.columns]
+    show_df = filtered[available_cols].copy().fillna('N/A')
+
+    st.dataframe(show_df, use_container_width=True, height=500)
+
+    csv = show_df.to_csv(index=False)
+    st.download_button(
+        label="📥 Download Gap Analysis (CSV)",
+        data=csv,
+        file_name=f"noon_gap_analysis_{datetime.now().strftime('%Y-%m-%d')}.csv",
+        mime="text/csv"
+    )
+
+    st.info(
+        "**Exact Match**: Noon carries the identical SKU/spec combination.  \n"
+        "**Similar Available**: Noon carries something close (same brand, overlapping specs) "
+        "but not the exact SKU - a partial gap.  \n"
+        "**Not Available**: No reasonable match found on Noon - a genuine assortment gap."
+    )
 
 
 if __name__ == '__main__':
