@@ -162,12 +162,11 @@ def main():
         "Noon": "noon_price"
     }
 
-    for platform, col in platform_cols.items():
-        if col in df.columns:
-            if platform not in platforms:
-                df = df[df[col].isna()]
-            else:
-                df = df[df[col].notna()]
+    selected_cols = [platform_cols[p] for p in platforms if platform_cols.get(p) in df.columns]
+    if selected_cols:
+        df = df[df[selected_cols].notna().any(axis=1)]
+    elif platforms == []:
+        df = df.iloc[0:0]  # nothing selected -> show nothing
 
     # Main content area
     col1, col2, col3, col4 = st.columns(4)
