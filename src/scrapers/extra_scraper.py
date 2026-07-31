@@ -73,7 +73,7 @@ class ExtraScraper:
             return f"{dup_match.group(1)}{dup_match.group(2)}".strip()
         return line if line else None
 
-    def _fetch_page(self, category: str, page: int, page_size: int = 100) -> Optional[str]:
+    def _fetch_page(self, category: str, page: int, page_size: int = 96) -> Optional[str]:
         base_url = CATEGORY_URLS[category]
         url = f"{base_url}&pg={page}&pageSize={page_size}&sort=relevance"
         try:
@@ -86,18 +86,29 @@ class ExtraScraper:
     def _parse_products_from_markdown(self, markdown: str, category: str) -> List[Dict[str, Any]]:
         products = []
 
-        # Each product card starts with a "[![noname](...)" image link and
-        # ends with "dummy](product_url)". Splitting on the card-start
-        # marker gives one clean, non-overlapping block per product -
-        # a backward-lookback-from-URL approach bled adjacent products'
-        # prices/titles into each other when cards were tightly packed.
+        # Each product card starts with a "[![noname](...)" image link.
+        # Splitting on the card-start marker gives one clean, non-
+        # overlapping block per product - a backward-lookback-from-URL
+        # approach bled adjacent products' prices/titles into each other
+        # when cards were tightly packed.
+        #
+        # The closing "](product_url)" is NOT consistently preceded by
+        # "dummy]" - that placeholder text only appears on cards missing
+        # certain optional elements (rating badge, etc). Roughly half of
+        # real cards close with something else instead (e.g. "...% Off"
+        # directly followed by the link) - matching only "dummy](" was
+        # silently dropping ~half of all real products (confirmed: 82
+        # product URLs actually present on a page, only 36 matched
+        # "dummy]", the rest closed differently). Match the LAST
+        # "](extra_product_url)" in the block instead, regardless of
+        # what precedes it.
         blocks = re.split(r'\[!\[noname\]', markdown)
 
         for block in blocks:
-            url_match = re.search(r'dummy\]\((https://www\.extra\.com/en-sa/computer/[^)\s]+/p/\d+)\)', block)
-            if not url_match:
+            url_matches = re.findall(r'\]\((https://www\.extra\.com/en-sa/computer/[^)\s]+/p/\d+)\)', block)
+            if not url_matches:
                 continue
-            url = url_match.group(1)
+            url = url_matches[-1]
 
             # Title: first substantial text line in the block that isn't
             # markup, a URL, or noise (ratings/stock/countdown text)
@@ -158,7 +169,7 @@ class ExtraScraper:
 
         return products
 
-    def scrape_category(self, category: str, max_products: int = 300, max_pages: int = 6) -> List[Dict[str, Any]]:
+    def scrape_category(self, category: str, max_products: int = 500, max_pages: int = 10) -> List[Dict[str, Any]]:
         print(f"\n{'='*60}")
         print(f"Scraping Extra {category}")
         print(f"{'='*60}")
@@ -195,7 +206,7 @@ class ExtraScraper:
         print(f"✓ Extra {category}: {len(collected)} products collected")
         return collected
 
-    def scrape_laptops(self, max_products: int = 300) -> List[Dict[str, Any]]:
+    def scrape_laptops(self, max_products: int = 500) -> List[Dict[str, Any]]:
         return self.scrape_category('Laptop', max_products)
 
     def scrape_desktops(self, max_products: int = 300) -> List[Dict[str, Any]]:

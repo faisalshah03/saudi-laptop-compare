@@ -152,6 +152,10 @@ class JarirScraper:
             'brand': meta.get('brand'),
             'model_name': meta.get('seri') or meta.get('model'),
             'model_number': meta.get('moch') or data.get('sku'),
+            # Manufacturer Part Number - Jarir's catalog carries this
+            # directly ("mpn"), distinct from model_number (which is
+            # Jarir's own internal SKU/model code, not the manufacturer's).
+            'manufacturer_number': meta.get('mpn'),
             # Jarir's own metadata already splits short tier ('prse', e.g.
             # "Intel Core i5") from the full SKU/generation descriptor
             # ('prcr', e.g. "Intel Core i5-1355U (13th Gen)") - use both

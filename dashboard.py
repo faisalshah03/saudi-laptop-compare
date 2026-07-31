@@ -254,8 +254,8 @@ def render_price_comparison(df):
     if not df.empty:
         # Select columns to display
         display_cols = [
-            'title', 'category', 'subtype', 'brand', 'model_name',
-            'processor', 'processor_full', 'cpu_power', 'ram', 'storage',
+            'title', 'category', 'subtype', 'brand', 'model_name', 'model_number',
+            'manufacturer_number', 'processor', 'processor_full', 'cpu_power', 'ram', 'storage',
             'graphics_card', 'ai_classification', 'npu_tops',
             'amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price',
             'best_price', 'best_price_platform'
@@ -267,6 +267,8 @@ def render_price_comparison(df):
             'subtype': 'Subtype',
             'brand': 'Brand',
             'model_name': 'Model',
+            'model_number': 'Model Number',
+            'manufacturer_number': 'Manufacturer Number',
             'processor': 'Processor',
             'processor_full': 'Processor (Full)',
             'cpu_power': 'CPU Clock',

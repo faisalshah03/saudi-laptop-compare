@@ -29,7 +29,7 @@ THRESHOLDS = {
     'Jarir': (5, 100),
     'Amazon.sa': (5, 30),
     'Noon': (5, 100),
-    'Extra': (5, 50),
+    'Extra': (5, 200),
 }
 
 

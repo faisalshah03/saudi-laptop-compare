@@ -86,7 +86,7 @@ def phase_1_scrape() -> tuple:
 
     # Scrape Extra.com (Saudi) - no bot-blocking, just needs a longer
     # Firecrawl wait_for the client-rendered product grid to hydrate
-    extra_products = run_scraper('Extra.com', lambda: ExtraScraper().scrape_all(max_per_category=100))
+    extra_products = run_scraper('Extra.com', lambda: ExtraScraper().scrape_all(max_per_category=450))
     platform_counts['Extra'] = len(extra_products)
     all_products.extend(extra_products)
 

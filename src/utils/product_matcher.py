@@ -77,8 +77,8 @@ class ProductMatcher:
     # from the title via _extract_gpu for consistent formatting across
     # every platform rather than trusting whatever a platform calls it.
     STRUCTURED_SPEC_FIELDS = [
-        'brand', 'model_name', 'model_number', 'processor', 'processor_full',
-        'ram', 'storage', 'subtype',
+        'brand', 'model_name', 'model_number', 'manufacturer_number',
+        'processor', 'processor_full', 'ram', 'storage', 'subtype',
     ]
 
     def __init__(self):
@@ -865,6 +865,7 @@ class ProductMatcher:
                 'brand': specs.get('brand'),
                 'model_name': specs.get('model_name'),
                 'model_number': specs.get('model_number'),
+                'manufacturer_number': specs.get('manufacturer_number'),
                 'processor': specs.get('processor'),
                 'processor_full': specs.get('processor_full'),
                 'cpu_power': specs.get('cpu_power'),

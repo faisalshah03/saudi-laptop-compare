@@ -6,7 +6,7 @@ from datetime import datetime
 try:
     from openpyxl import Workbook
     from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
-    from openpyxl.utils import get_column_letter
+    from openpyxl.utils import get_column_letter, column_index_from_string
 except ImportError:
     raise ImportError("openpyxl not installed. Run: python3 -m pip install openpyxl")
 
@@ -23,25 +23,26 @@ class ExcelExporter:
         ('E', 'brand', 'Brand'),
         ('F', 'model_name', 'Model Name'),
         ('G', 'model_number', 'Model Number'),
-        ('H', 'processor', 'Processor'),
-        ('I', 'processor_full', 'Processor (Full Name)'),
-        ('J', 'cpu_power', 'CPU Clock Speed'),
-        ('K', 'ram', 'RAM'),
-        ('L', 'storage', 'Storage'),
-        ('M', 'graphics_card', 'Graphics Card'),
-        ('N', 'ai_classification', 'AI Classification'),
-        ('O', 'npu_tops', 'NPU TOPS'),
-        ('P', 'amazon_sa_price', 'Amazon.sa (SAR)'),
-        ('Q', 'jarir_price', 'Jarir (SAR)'),
-        ('R', 'extra_price', 'Extra.com (SAR)'),
-        ('S', 'noon_price', 'Noon.com (SAR)'),
-        ('T', 'best_price', 'Best Price (SAR)'),
-        ('U', 'best_price_platform', 'Best on Platform'),
-        ('V', 'amazon_sa_link', 'Amazon Link'),
-        ('W', 'jarir_link', 'Jarir Link'),
-        ('X', 'extra_link', 'Extra Link'),
-        ('Y', 'noon_link', 'Noon Link'),
-        ('Z', 'last_updated', 'Last Updated'),
+        ('H', 'manufacturer_number', 'Manufacturer Number'),
+        ('I', 'processor', 'Processor'),
+        ('J', 'processor_full', 'Processor (Full Name)'),
+        ('K', 'cpu_power', 'CPU Clock Speed'),
+        ('L', 'ram', 'RAM'),
+        ('M', 'storage', 'Storage'),
+        ('N', 'graphics_card', 'Graphics Card'),
+        ('O', 'ai_classification', 'AI Classification'),
+        ('P', 'npu_tops', 'NPU TOPS'),
+        ('Q', 'amazon_sa_price', 'Amazon.sa (SAR)'),
+        ('R', 'jarir_price', 'Jarir (SAR)'),
+        ('S', 'extra_price', 'Extra.com (SAR)'),
+        ('T', 'noon_price', 'Noon.com (SAR)'),
+        ('U', 'best_price', 'Best Price (SAR)'),
+        ('V', 'best_price_platform', 'Best on Platform'),
+        ('W', 'amazon_sa_link', 'Amazon Link'),
+        ('X', 'jarir_link', 'Jarir Link'),
+        ('Y', 'extra_link', 'Extra Link'),
+        ('Z', 'noon_link', 'Noon Link'),
+        ('AA', 'last_updated', 'Last Updated'),
     ]
 
     def __init__(self, output_path: str):
@@ -53,7 +54,7 @@ class ExcelExporter:
         """Get column number by field name."""
         for col_letter, field, _ in self.COLUMNS:
             if field == field_name:
-                return ord(col_letter) - ord('A') + 1
+                return column_index_from_string(col_letter)
         return None
 
     def _create_header_row(self, ws):
@@ -70,14 +71,14 @@ class ExcelExporter:
         ws.freeze_panes = 'A2'
 
         # Auto-filter
-        ws.auto_filter.ref = f'A1:Z{ws.max_row}'
+        ws.auto_filter.ref = f'A1:AA{ws.max_row}'
 
         # Set column widths
         column_widths = {
             'A': 18, 'B': 40, 'C': 10, 'D': 16, 'E': 12, 'F': 18, 'G': 12,
-            'H': 16, 'I': 26, 'J': 14, 'K': 10, 'L': 12, 'M': 18, 'N': 16,
-            'O': 12, 'P': 14, 'Q': 14, 'R': 14, 'S': 14, 'T': 14, 'U': 16,
-            'V': 30, 'W': 30, 'X': 30, 'Y': 30, 'Z': 18
+            'H': 18, 'I': 16, 'J': 26, 'K': 14, 'L': 10, 'M': 12, 'N': 18,
+            'O': 16, 'P': 12, 'Q': 14, 'R': 14, 'S': 14, 'T': 14, 'U': 14,
+            'V': 16, 'W': 30, 'X': 30, 'Y': 30, 'Z': 30, 'AA': 18
         }
 
         for col, width in column_widths.items():
@@ -143,7 +144,7 @@ class ExcelExporter:
 
         # Set up auto-filter
         max_row = len(products) + 1
-        ws.auto_filter.ref = f'A1:Z{max_row}'
+        ws.auto_filter.ref = f'A1:AA{max_row}'
 
     def create_raw_data_sheet(self, raw_products: List[Dict]):
         """Create raw data sheet for reference."""
