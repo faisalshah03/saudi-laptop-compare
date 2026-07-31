@@ -213,4 +213,71 @@ dashboard.py                     - Streamlit app, 2 tabs (Price Comparison, Noon
 
 ---
 
+---
+
+## 10. Addendum: Response to External Review (2026-07-31, same day)
+
+This report was sent to the user for external AI review. The review was sharp and mostly correct; this addendum documents what changed as a direct result, written with the same candor as the rest of this document.
+
+### What the reviewer got right, and what we did about it
+
+- **Match-score denominator bug** (§6.1 above): confirmed and fixed. `calculate_match_score` now divides only by fields present on both sides being compared, not a fixed 5.
+- **Non-transitive, order-dependent clustering**: confirmed and fixed. Replaced greedy first-match-wins merging with Union-Find over pairwise matches, so the transitive closure of matches (A~B, B~C ⇒ all three grouped) is taken properly instead of depending on input order.
+- **Tier-3 fuzzy title matching being dangerous** ("Latitude 7430" vs "7440"): confirmed and fixed. Tier 3 is now gated behind brand + another spec agreeing, plus a numeric-model-token check that vetoes the match if both model names carry different distinguishing numbers.
+- **Amazon accessory-title poisoning brand extraction**: confirmed - Amazon had no accessory filter (Jarir and Noon did). Added one.
+- **No rate limiting**: added jittered delays across all three scrapers.
+- **Gap analysis conflating "not scraped" with "not carried"**: correct and important, not something a code change alone fixes (needs bigger scrape volume + subtype segmentation, both still open - see §12 below).
+- **Flat JSON / no history**: agreed as a real limitation for anything beyond a prototype; not addressed this round (out of scope for a same-day fix cycle), but the append-only `data/run_log.jsonl` added this round (see below) is a first, cheap step toward it.
+
+### Two real bugs the review didn't catch, found while implementing its own recommendations
+
+Fixing the denominator and adding transitive closure immediately surfaced two **existing** false-positive bugs that greedy matching had been silently absorbing:
+
+1. `_extract_model_number`'s generic fallback regex (`[A-Z0-9]{6,}` between whitespace) was matching plain English words - "ThinkBook", "Windows" - as if they were model numbers. Two completely unrelated products that both happened to mention "ThinkBook" prominently would tier-1 "exact match" merge, at whatever wildly different prices they actually had.
+2. The Mac-format model-number pattern (`[A-Z]\d{4}`) was matching inside screen-resolution strings - "1920**x1080**" parsed as model number "X1080". Every product mentioning that common resolution was at risk of merging with every other one.
+
+Both were caught by manually inspecting multi-platform matches for price-spread sanity (a $900 product "matching" a $4,800 product is an obvious tell) after the transitive-closure change made the damage more visible/aggregated than greedy matching had. **This is worth flagging as a methodology point for the next reviewer**: neither of these would show up from reading the matching logic in isolation - they only surface by running it against real data and eyeballing outliers. No automated test would have caught them either, since there is no test suite (still true, still a real gap - see §9).
+
+### A second-order bug the fix itself introduced (and fixed)
+
+Requiring `model_name` to match, combined with now *preferring* each platform's own structured data (see next section) over regex-only extraction, immediately became too strict: Jarir's structured RAM field reads `"16 GB RAM"` while our own title-regex produces `"16GB"` - same value, different string, so exact-equality comparison silently failed almost every cross-platform pair. Added format-aware normalizers (`_normalize_capacity` for RAM/storage, `_processors_match` for processor SKUs with descriptive suffixes stripped, gated fuzzy comparison for `model_name`). Net effect on this dataset: multi-platform matches went 1 → 6, including two pairs with **identical prices across platforms** (strong external confirmation the match is correct, not coincidental).
+
+### Data-quality fix independent of the review (direct user feedback)
+
+The user separately reported missing model names/processors/RAM/storage despite the data "being right there in the title." Root cause: `merge_products()` called `extract_specs_from_title()` unconditionally for every product, which **discarded** whatever clean structured data a scraper had already attached (Jarir's Constructor.io metadata, Noon's `plp_specifications`) and replaced it with a fresh regex-only extraction from the title string. This is a real architectural bug, not a coverage gap - the good data existed and was being thrown away. Fixed: `extract_specs()` now prefers structured fields already on the product record and only falls back to title-regex for genuinely missing ones. Field coverage on the next run: brand 65%→94%, processor 65%→89%, storage 71%→90%, graphics_card 47%→65%.
+
+### New this round
+
+- **Extra.com scraper** (`src/scrapers/extra_scraper.py`): unlike Noon, Extra doesn't block plain HTTP or bot-detect headless browsers - it just needs a longer Firecrawl `wait_for` (6s) for the client-rendered product grid to hydrate. Parses by splitting markdown on each product card's boundary marker rather than a backward lookback-window from each product URL - the lookback approach was found to bleed adjacent products' prices into each other when cards were tightly packed (caught the same way as the matching bugs: price-sanity-checking the output).
+- **Health checks + structured logging** (`src/utils/health_check.py`): distinguishes healthy / degraded / failed per platform per run. A platform returning ~zero products (both its primary method and any fallback failed) now raises and stops the pipeline loudly instead of silently shipping data missing an entire platform. A low-but-nonzero count (e.g. Jarir's markdown fallback, which only ever surfaces ~12-24 products) logs as degraded and the pipeline continues. Every run appends one JSON line to `data/run_log.jsonl` with platform counts, health status, field coverage, and merge stats - a first step toward the run-history the reviewer correctly noted doesn't exist yet.
+- **Jarir markdown fallback**: if the Constructor.io key this integration depends on ever breaks, `jarir_scraper.py` now falls back to scraping the old curated-widget page rather than returning zero Jarir data outright. Degraded (≈12-24 products, not the full ≈345), but alive.
+- **Live product search** (`src/utils/live_search.py`, new dashboard tab): user-requested feature, not from the review. Searches the existing scraped catalog instantly (free), plus an opt-in "Search Live" button that hits all four platforms' real search endpoints directly and shows raw results with prices/links - useful when the cached catalog doesn't have a specific item, or for checking current live price/stock.
+
+### Numbers, before / after this round
+
+| Metric | Before | After |
+|---|---|---|
+| Unique products | 604 (3 platforms) | 875 (4 platforms) |
+| brand coverage | 65% | 94% |
+| processor coverage | 65% | 89% |
+| storage coverage | 71% | 90% |
+| graphics_card coverage | 47% | 65% |
+| Multi-platform matches | 261 (many verifiably wrong - 3-6x price spreads) | 6 (spot-checked correct, 2 with identical cross-platform prices) |
+| Noon gap analysis | 148/434 exact match (34.1%) - **now known to include false-positive matches from the bugs above, so this figure was unreliable** | 22/487 exact match (4.5%) - lower, but each one verified plausible |
+
+The multi-platform match count dropping sharply (261 → 6) while coverage/correctness went up is the point, not a regression: the 261 figure was inflated by the two false-positive bugs described above. 6 correctness-checked matches is a truer (if smaller) number than 261 partly-wrong ones. That said, 6 out of 875 is very low for what should be a meaningfully overlapping market (the same popular laptop models being sold on multiple sites) - see open item below.
+
+### Still open (unchanged from original report unless noted)
+
+1. **`similar_available` gap-analysis bucket still returns 0%.** Unclear if this is a residual scoring/threshold issue or a genuine finding that Noon's near-miss inventory (same brand, different config, not exact SKU) is empty in this sample. Not diagnosed further this round given time constraints - flagged, not fixed.
+2. **Cross-platform match rate (6/875) seems low even accounting for the false-positive cleanup.** Worth investigating with fresh eyes whether platforms genuinely carry disjoint SKU sets in this sample, or whether matching is still too conservative somewhere not yet found.
+3. **No automated test suite** - still true, and per this round's experience, the two false-positive bugs are a concrete argument for at least a small regression suite (a handful of known match/no-match pairs) rather than relying on manual price-sanity spot-checks after every change.
+4. **Gap analysis "universe" still doesn't include Extra.com data in a validated way** - Extra was added this round but the gap analysis wasn't re-validated against it beyond the pipeline run completing without errors.
+5. **Legal/compliance, repo privacy, SQLite migration, Excel summary sheet** - all still open exactly as stated in the original report; not addressed this round by explicit user decision (repo privacy) or scope (the rest).
+6. **Brand casing inconsistency** noticed in passing (`"HP"` and `"Hp"` both appear as distinct entries in gap-analysis brand breakdowns) - cosmetic, not diagnosed or fixed.
+
+*End of addendum.*
+
+---
+
 *End of report.*
