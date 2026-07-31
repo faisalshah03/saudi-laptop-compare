@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.venv
+venv
+.streamlit/secrets.toml
+inspect_amazon.py
+inspect_html.py
+test_jarir.py
+run_jarir_scraper.sh
+DEPLOYMENT.md
+README.md
+data/raw_products.json
+data/jarir_sample.json
+data/amazon_sample.json

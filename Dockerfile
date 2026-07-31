@@ -20,15 +20,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY api.py dashboard.py main.py ./
 
-# Create data and output directories
+# Copy pre-scraped data so the dashboard has real data on first load
 RUN mkdir -p data output
+COPY data/ data/
+COPY output/ output/
 
-# Expose port
-EXPOSE 8000
+# Expose port (Railway injects $PORT at runtime)
+EXPOSE 8501
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Run API server
-CMD ["python3", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the Streamlit dashboard (Railway overrides this via railway.toml startCommand,
+# this CMD is the fallback for plain `docker run`)
+CMD ["sh", "-c", "streamlit run dashboard.py --server.port ${PORT:-8501} --server.address 0.0.0.0 --server.headless true"]

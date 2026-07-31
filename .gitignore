@@ -32,9 +32,8 @@ data/raw_products.json
 data/jarir_sample.json
 data/amazon_sample.json
 
-# Streamlit
+# Streamlit (config.toml is safe to commit; secrets.toml is not)
 .streamlit/secrets.toml
-.streamlit/config.toml
 
 # Testing
 .pytest_cache/
