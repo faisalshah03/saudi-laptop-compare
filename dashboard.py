@@ -751,6 +751,42 @@ def render_gap_analysis():
     )
 
 
+def _render_product_card(p: dict):
+    """Renders one search result as a card with a real one-click
+    st.link_button per platform. st.dataframe's LinkColumn technically
+    supports links, but requires clicking into the cell first to reveal
+    a small link icon before it opens - confusing/easy to miss,
+    especially on Streamlit Cloud. st.link_button is a genuine
+    single-click anchor, so search results (a small result set) use
+    cards instead of a table for this reason."""
+    with st.container(border=True):
+        st.markdown(f"**{p.get('title', 'Untitled')}**")
+        specs = ' · '.join(str(v) for v in [p.get('brand'), p.get('processor'), p.get('ram'), p.get('storage')] if v)
+        if specs:
+            st.caption(specs)
+
+        cols = st.columns(4)
+        platforms = [
+            ('Amazon.sa', p.get('amazon_sa_price'), p.get('amazon_sa_link')),
+            ('Jarir', p.get('jarir_price'), p.get('jarir_link')),
+            ('Extra', p.get('extra_price'), p.get('extra_link')),
+            ('Noon', p.get('noon_price'), p.get('noon_link')),
+        ]
+        for col, (label, price, link) in zip(cols, platforms):
+            with col:
+                # link/price can come back as float NaN (not None) once a
+                # column has passed through a DataFrame with an all-missing
+                # subset - `if link:` alone is True for NaN, which then
+                # crashes st.link_button expecting a URL string.
+                has_link = isinstance(link, str) and link
+                if has_link:
+                    has_price = price is not None and pd.notna(price)
+                    text = f"{label} · SAR {price:,.0f}" if has_price else f"Open on {label}"
+                    st.link_button(text, link, use_container_width=True)
+                else:
+                    st.caption(f"{label}: N/A")
+
+
 def render_product_search(df):
     """Search for a specific product by title/model/brand/config.
     Step 1 searches the already-scraped catalog (instant, free). Step 2
@@ -801,29 +837,8 @@ def render_product_search(df):
     )
 
     if local_results:
-        local_df = pd.DataFrame(local_results)
-        display_cols = [
-            'title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage',
-            'amazon_sa_price', 'amazon_sa_link',
-            'jarir_price', 'jarir_link',
-            'extra_price', 'extra_link',
-            'noon_price', 'noon_link',
-            'best_price'
-        ]
-        search_link_cols = ['amazon_sa_link', 'jarir_link', 'extra_link', 'noon_link']
-        available_cols = [c for c in display_cols if c in local_df.columns]
-        show_local_df = local_df[available_cols].copy()
-        non_link_cols = [c for c in available_cols if c not in search_link_cols]
-        show_local_df[non_link_cols] = show_local_df[non_link_cols].fillna('N/A')
-        st.dataframe(
-            show_local_df,
-            use_container_width=True,
-            height=350,
-            column_config={
-                c: st.column_config.LinkColumn(c, display_text="🔗 Open")
-                for c in search_link_cols if c in show_local_df.columns
-            }
-        )
+        for p in local_results:
+            _render_product_card(p)
     else:
         st.warning("No matches in the existing scraped catalog.")
 
@@ -839,7 +854,14 @@ def render_product_search(df):
         v for v in (search_brand, search_processor, search_ram, search_storage) if v and v != 'All'
     )
 
-    if st.button("🔍 Search Live Across All Platforms", disabled=not live_query):
+    if not local_results:
+        st.info("Not in our existing catalog? Search the 4 sites live right now:")
+
+    if st.button(
+        "🔍 Search Live Across All Platforms",
+        disabled=not live_query,
+        type="primary" if not local_results else "secondary"
+    ):
         with st.spinner(f"Searching Jarir, Amazon.sa, Noon, and Extra for \"{live_query}\"..."):
             from utils.live_search import search_live
             try:
@@ -851,17 +873,16 @@ def render_product_search(df):
         for platform, products in live_results.items():
             st.markdown(f"**{platform}** ({len(products)} results)")
             if products:
-                rows = [{
-                    'Title': p.get('raw_title', p.get('title', '')),
-                    'Price (SAR)': p.get('price'),
-                    'Link': p.get('product_url'),
-                } for p in products]
-                st.dataframe(
-                    pd.DataFrame(rows),
-                    use_container_width=True,
-                    height=min(250, 50 + 35 * len(rows)),
-                    column_config={'Link': st.column_config.LinkColumn('Link', display_text="🔗 Open")}
-                )
+                for p in products:
+                    price = p.get('price')
+                    label = p.get('raw_title', p.get('title', 'View product'))
+                    if price and pd.notna(price):
+                        label = f"SAR {price:,.0f} · {label}"
+                    url = p.get('product_url')
+                    if url:
+                        st.link_button(label[:90], url, use_container_width=True)
+                    else:
+                        st.caption(label)
             else:
                 st.caption("No results.")
 
