@@ -19,22 +19,56 @@ from typing import List, Dict, Any
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-def search_local(query: str, products: List[Dict[str, Any]], max_results: int = 30) -> List[Dict[str, Any]]:
-    """Search the already-scraped, merged product catalog. Simple
-    substring match across the fields a user would plausibly search by
-    (title, brand, model name/number, processor) - fast and free."""
-    query_lower = query.lower().strip()
-    if not query_lower:
-        return []
+def search_local(
+    query: str,
+    products: List[Dict[str, Any]],
+    max_results: int = 30,
+    brand: str = None,
+    ram: str = None,
+    storage: str = None,
+    processor: str = None,
+) -> List[Dict[str, Any]]:
+    """Search the already-scraped, merged product catalog.
 
-    terms = query_lower.split()
+    Requires ALL free-text query terms to match (AND, not OR) - a query
+    like "Apple M5 Max 48GB" previously matched anything sharing even
+    one term (e.g. a Lenovo with "Max" in its title, or unrelated 48GB
+    storage), because it scored by match COUNT rather than requiring
+    every term. Since brand is almost always one of the query terms,
+    AND-matching also fixes cross-brand bleed without any special-casing.
+
+    The brand/ram/storage/processor params are exact-ish dropdown
+    filters (from the dashboard UI) applied before the free-text match,
+    for users who want a strict brand + spec combination rather than
+    typing it all as free text.
+    """
     searchable_fields = ['title', 'brand', 'model_name', 'model_number', 'processor']
 
+    def haystack_of(product: Dict[str, Any]) -> str:
+        return ' '.join(str(product.get(f, '')) for f in searchable_fields).lower()
+
+    candidates = products
+
+    if brand and brand != 'All':
+        candidates = [p for p in candidates if str(p.get('brand', '')).lower() == brand.lower()]
+    if ram and ram != 'All':
+        candidates = [p for p in candidates if str(p.get('ram', '')).lower() == ram.lower()]
+    if storage and storage != 'All':
+        candidates = [p for p in candidates if str(p.get('storage', '')).lower() == storage.lower()]
+    if processor and processor != 'All':
+        candidates = [p for p in candidates if processor.lower() in str(p.get('processor', '')).lower()]
+
+    query_lower = query.lower().strip()
+    if not query_lower:
+        return candidates[:max_results]
+
+    terms = query_lower.split()
+
     scored = []
-    for product in products:
-        haystack = ' '.join(str(product.get(f, '')) for f in searchable_fields).lower()
+    for product in candidates:
+        haystack = haystack_of(product)
         matched_terms = sum(1 for term in terms if term in haystack)
-        if matched_terms > 0:
+        if matched_terms == len(terms):
             scored.append((matched_terms, product))
 
     scored.sort(key=lambda x: -x[0])

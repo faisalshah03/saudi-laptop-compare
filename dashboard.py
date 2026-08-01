@@ -25,137 +25,203 @@ BASE_DIR = Path(__file__).parent
 
 
 def inject_css():
-    """Injects custom CSS for a modern look on top of Streamlit's defaults."""
+    """Injects custom CSS for a distinct visual identity - a data/analyst
+    tool feel (deep teal/navy, custom icon KPI cards, underline tabs)
+    rather than a generic indigo SaaS-gradient look."""
     st.markdown("""
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+        :root {
+            --ink: #0B1220;
+            --muted: #64748B;
+            --canvas: #F4F6F7;
+            --card: #FFFFFF;
+            --border: #E2E8ED;
+            --teal: #0F766E;
+            --teal-light: #14B8A6;
+            --amber: #D97706;
+            --blue: #2563EB;
+            --rose: #E11D48;
+        }
 
         html, body, [class*="css"] {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        /* Light-gray canvas so white cards read as cards, kit-style */
         [data-testid="stAppViewContainer"] > .main {
-            background: #F5F6FA;
+            background: var(--canvas);
         }
 
-        /* Tighten default top padding */
         .block-container {
             padding-top: 2rem;
             padding-bottom: 2rem;
         }
 
-        /* Hero header */
+        /* Hero header - deep teal/navy instead of indigo-purple gradient,
+        with a subtle dot-grid texture and a live-status pill */
         .hero-banner {
-            background: linear-gradient(120deg, #4F46E5 0%, #7C3AED 100%);
-            border-radius: 16px;
+            position: relative;
+            background: linear-gradient(135deg, #0B3B36 0%, #0F766E 55%, #115E59 100%);
+            background-image:
+                radial-gradient(circle at 1px 1px, rgba(255,255,255,0.09) 1px, transparent 0),
+                linear-gradient(135deg, #0B3B36 0%, #0F766E 55%, #115E59 100%);
+            background-size: 18px 18px, 100% 100%;
+            border-radius: 18px;
             padding: 1.75rem 2rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+            margin-bottom: 1.75rem;
+            box-shadow: 0 10px 30px rgba(15, 118, 110, 0.28);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
         .hero-banner h1 {
             color: #FFFFFF;
-            font-size: 1.65rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            margin: 0 0 0.35rem 0;
+            margin: 0 0 0.3rem 0;
             letter-spacing: -0.02em;
         }
         .hero-banner p {
-            color: rgba(255, 255, 255, 0.88);
-            font-size: 0.95rem;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.92rem;
             margin: 0;
             font-weight: 500;
         }
-
-        /* Metric cards */
-        [data-testid="stMetric"] {
-            background: #FFFFFF;
-            border: 1px solid #ECECF4;
-            border-radius: 14px;
-            padding: 1rem 1.1rem;
-            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
-            transition: box-shadow 0.15s ease;
-        }
-        [data-testid="stMetric"]:hover {
-            box-shadow: 0 4px 14px rgba(16, 24, 40, 0.1);
-            transform: translateY(-1px);
-        }
-        [data-testid="stMetricLabel"] {
-            font-weight: 600;
-            color: #6B7280;
-        }
-        [data-testid="stMetricValue"] {
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: #E6FFFA;
+            font-size: 0.75rem;
             font-weight: 700;
-            color: #1A1D29;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 6px 12px;
+            border-radius: 999px;
+            white-space: nowrap;
+        }
+        .hero-badge .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34D399;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25);
         }
 
-        /* Colorful top accents on KPI rows, kit-style */
-        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(1) [data-testid="stMetric"] {
-            border-top: 3px solid #4F46E5;
+        /* Custom KPI cards (replaces st.metric for full icon/accent control) */
+        .kpi-card {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 32, 0.04);
+            transition: box-shadow 0.15s ease, transform 0.15s ease;
         }
-        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(2) [data-testid="stMetric"] {
-            border-top: 3px solid #7C3AED;
+        .kpi-card:hover {
+            box-shadow: 0 8px 20px rgba(15, 23, 32, 0.08);
+            transform: translateY(-2px);
         }
-        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(3) [data-testid="stMetric"] {
-            border-top: 3px solid #F59E0B;
-        }
-        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(4) [data-testid="stMetric"] {
-            border-top: 3px solid #10B981;
-        }
-
-        /* Tabs */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 4px;
-            background: #F5F6FA;
+        .kpi-icon {
+            flex: none;
+            width: 42px;
+            height: 42px;
             border-radius: 12px;
-            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .kpi-label {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.15rem;
+        }
+        .kpi-value {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--ink);
+            font-family: 'JetBrains Mono', 'Inter', monospace;
+            line-height: 1.1;
+        }
+
+        /* Tabs - underline indicator instead of pill segmented control */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 1.5rem;
+            background: transparent;
+            border-bottom: 2px solid var(--border);
+            padding: 0;
         }
         .stTabs [data-baseweb="tab"] {
-            border-radius: 9px;
             font-weight: 600;
-            color: #6B7280;
-            padding: 8px 16px;
+            color: var(--muted);
+            padding: 0.6rem 0.1rem;
+            background: transparent;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
         }
         .stTabs [aria-selected="true"] {
-            background: #FFFFFF !important;
-            color: #4F46E5 !important;
-            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+            background: transparent !important;
+            color: var(--teal) !important;
+            border-bottom: 2px solid var(--teal) !important;
+            box-shadow: none;
         }
 
         /* Sidebar */
         [data-testid="stSidebar"] {
-            background: #F9FAFC;
-            border-right: 1px solid #ECECF4;
+            background: #FBFCFC;
+            border-right: 1px solid var(--border);
         }
         [data-testid="stSidebar"] h2 {
-            font-size: 1rem;
+            font-size: 0.8rem;
             font-weight: 700;
-            color: #1A1D29;
+            color: var(--ink);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid var(--teal);
+            padding-bottom: 0.4rem;
+            display: inline-block;
+        }
+        [data-testid="stSidebar"] label p {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--muted);
         }
 
         /* Buttons */
         .stButton button, .stDownloadButton button {
             border-radius: 9px;
             font-weight: 600;
-            border: 1px solid #ECECF4;
+            border: 1px solid var(--border);
             transition: all 0.15s ease;
         }
         .stButton button:hover, .stDownloadButton button:hover {
-            border-color: #4F46E5;
-            color: #4F46E5;
+            border-color: var(--teal);
+            color: var(--teal);
         }
 
         /* Dataframe / table container */
         [data-testid="stDataFrame"] {
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
-            border: 1px solid #ECECF4;
+            border: 1px solid var(--border);
         }
 
         /* Section headings */
         h2, h3 {
             font-weight: 700;
             letter-spacing: -0.01em;
+            color: var(--ink);
         }
 
         /* Info/warning/error boxes */
@@ -163,6 +229,19 @@ def inject_css():
             border-radius: 10px;
         }
     </style>
+    """, unsafe_allow_html=True)
+
+
+def kpi_card(icon: str, label: str, value: str, accent: str = "#0F766E"):
+    """Renders a custom icon KPI card (replaces st.metric for design control)."""
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-icon" style="background:{accent}1A; color:{accent};">{icon}</div>
+        <div>
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+        </div>
+    </div>
     """, unsafe_allow_html=True)
 
 
@@ -272,8 +351,11 @@ def main():
 
     st.markdown("""
     <div class="hero-banner">
-        <h1>🌏 Saudi Laptop Price Comparison</h1>
-        <p>Compare laptop &amp; desktop prices across Amazon.sa, Jarir, Extra, &amp; Noon</p>
+        <div>
+            <h1>💻 Saudi Laptop Price Comparison</h1>
+            <p>Compare laptop &amp; desktop prices across Amazon.sa, Jarir, Extra, &amp; Noon</p>
+        </div>
+        <span class="hero-badge"><span class="dot"></span>Live Data</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -379,22 +461,25 @@ def render_price_comparison(df):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Total Products", len(df))
+        kpi_card("📦", "Total Products", f"{len(df):,}", accent="#0F766E")
 
     with col2:
+        avg_display = "N/A"
         if not df.empty and 'best_price' in df.columns:
             avg_price = df['best_price'].dropna().mean()
-            st.metric("Average Price", f"SAR {avg_price:,.0f}" if pd.notna(avg_price) else "N/A")
+            avg_display = f"SAR {avg_price:,.0f}" if pd.notna(avg_price) else "N/A"
+        kpi_card("💰", "Average Price", avg_display, accent="#D97706")
 
     with col3:
         platforms_available = sum(1 for p in platforms if p in platform_cols and platform_cols[p] in df.columns and df[platform_cols[p]].notna().any())
-        st.metric("Platforms", platforms_available)
+        kpi_card("🌐", "Platforms", str(platforms_available), accent="#2563EB")
 
     with col4:
         excel_path = get_latest_excel_path()
+        last_updated = "N/A"
         if excel_path:
             last_updated = datetime.fromtimestamp(excel_path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
-            st.metric("Last Updated", last_updated)
+        kpi_card("🕒", "Last Updated", last_updated, accent="#7C3AED")
 
     # Display table
     st.markdown("## 📊 Price Comparison Table")
@@ -561,14 +646,13 @@ def render_gap_analysis():
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        st.metric(f"{base_label} Size", summary.get('total_base_products', 0))
+        kpi_card("📚", f"{base_label} Size", f"{summary.get('total_base_products', 0):,}", accent="#0F766E")
     with col2:
-        st.metric("Exact Match on Noon", f"{summary.get('exact_match_count', 0)} ({summary.get('exact_match_pct', 0)}%)")
+        kpi_card("✅", "Exact Match on Noon", f"{summary.get('exact_match_count', 0)} ({summary.get('exact_match_pct', 0)}%)", accent="#2563EB")
     with col3:
-        st.metric("Similar Available", f"{summary.get('similar_available_count', 0)} ({summary.get('similar_available_pct', 0)}%)")
+        kpi_card("🟡", "Similar Available", f"{summary.get('similar_available_count', 0)} ({summary.get('similar_available_pct', 0)}%)", accent="#D97706")
     with col4:
-        st.metric("Missing from Noon", f"{summary.get('not_available_count', 0)} ({summary.get('not_available_pct', 0)}%)",
-                  delta_color="inverse")
+        kpi_card("⚠️", "Missing from Noon", f"{summary.get('not_available_count', 0)} ({summary.get('not_available_pct', 0)}%)", accent="#E11D48")
 
     # Missing-by-brand breakdown
     missing_by_brand = summary.get('missing_by_brand', {})
@@ -676,14 +760,33 @@ def render_product_search(df):
     the user explicitly asks for it."""
     st.markdown("## 🔎 Search for a Specific Product")
     st.markdown(
-        "Type a title, model name, model number, or configuration (e.g. "
-        "\"Dell Latitude 7440\", \"i7 16GB 512GB\", \"MacBook Air M5\")."
+        "Narrow by brand/spec below for an exact match within that brand, or leave them "
+        "on **All** and just type free text to browse across brands (e.g. \"i7 16GB 512GB\")."
     )
 
-    query = st.text_input("Search query", key="product_search_query", placeholder="e.g. ThinkPad T14 16GB")
+    filter_col1, filter_col2, filter_col3, filter_col4 = st.columns(4)
+    with filter_col1:
+        brand_choices = ['All'] + sorted(df['brand'].dropna().unique().tolist()) if 'brand' in df.columns else ['All']
+        search_brand = st.selectbox("Brand", brand_choices, key="search_brand_select")
+    with filter_col2:
+        ram_choices = ['All'] + sorted(df['ram'].dropna().unique().tolist(), key=lambda x: str(x)) if 'ram' in df.columns else ['All']
+        search_ram = st.selectbox("RAM", ram_choices, key="search_ram_select")
+    with filter_col3:
+        storage_choices = ['All'] + sorted(df['storage'].dropna().unique().tolist(), key=lambda x: str(x)) if 'storage' in df.columns else ['All']
+        search_storage = st.selectbox("Storage", storage_choices, key="search_storage_select")
+    with filter_col4:
+        processor_choices = ['All'] + sorted(df['processor'].dropna().unique().tolist()) if 'processor' in df.columns else ['All']
+        search_processor = st.selectbox("Processor", processor_choices, key="search_processor_select")
 
-    if not query:
-        st.info("Enter a search term above to get started.")
+    query = st.text_input(
+        "Search text (optional if using the dropdowns above)",
+        key="product_search_query",
+        placeholder="e.g. M5 Max 48GB, ThinkPad T14, i7 16GB 512GB"
+    )
+
+    no_filters_set = all(v == 'All' for v in (search_brand, search_ram, search_storage, search_processor))
+    if not query and no_filters_set:
+        st.info("Enter a search term or pick a brand/spec filter above to get started.")
         return
 
     import sys as _sys
@@ -692,7 +795,10 @@ def render_product_search(df):
     from utils.live_search import search_local
 
     st.markdown("### 📚 Results from existing scraped data")
-    local_results = search_local(query, df.to_dict('records'), max_results=30)
+    local_results = search_local(
+        query, df.to_dict('records'), max_results=30,
+        brand=search_brand, ram=search_ram, storage=search_storage, processor=search_processor
+    )
 
     if local_results:
         local_df = pd.DataFrame(local_results)
@@ -729,11 +835,15 @@ def render_product_search(df):
         "current live prices/stock for a specific item."
     )
 
-    if st.button("🔍 Search Live Across All Platforms"):
-        with st.spinner(f"Searching Jarir, Amazon.sa, Noon, and Extra for \"{query}\"..."):
+    live_query = query.strip() or ' '.join(
+        v for v in (search_brand, search_processor, search_ram, search_storage) if v and v != 'All'
+    )
+
+    if st.button("🔍 Search Live Across All Platforms", disabled=not live_query):
+        with st.spinner(f"Searching Jarir, Amazon.sa, Noon, and Extra for \"{live_query}\"..."):
             from utils.live_search import search_live
             try:
-                live_results = search_live(query, max_per_platform=5)
+                live_results = search_live(live_query, max_per_platform=5)
             except Exception as e:
                 st.error(f"Live search failed: {e}")
                 live_results = {}

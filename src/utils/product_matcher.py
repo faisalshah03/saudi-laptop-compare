@@ -326,6 +326,24 @@ class ProductMatcher:
             if match:
                 return re.sub(r'\s{2,}', ' ', match.group(0).strip())
 
+        # Fallback for titles that state the bare SKU without the full
+        # "Intel Core"/"AMD" brand phrase nearby - either no branding
+        # word at all (e.g. "Dual-Core i5-3380M 3.6GHz...", where "Core"
+        # means dual-core, not the brand name "Intel Core"), or "Core
+        # i5-1145G7" with "Core" but no "Intel". _extract_processor_full
+        # already handles bare SKUs via its own fallback pattern; the
+        # short tier was missing the equivalent, so titles like these
+        # left `processor` as None while `processor_full` populated
+        # fine. Suffix allows a trailing digit (e.g. "G7", "G1") since
+        # 10th/11th-gen U-series SKUs commonly end letter+digit.
+        bare_intel = re.search(r'\bi([3579])-\d{3,5}[A-Za-z0-9]{0,3}\b', title, re.IGNORECASE)
+        if bare_intel:
+            return f"Intel Core i{bare_intel.group(1)}"
+
+        bare_ryzen = re.search(r'\bRyzen\s*([3579])\b(?!-)', title, re.IGNORECASE)
+        if bare_ryzen:
+            return f"AMD Ryzen {bare_ryzen.group(1)}"
+
         return None
 
     def _extract_processor_full(self, title: str) -> str:
