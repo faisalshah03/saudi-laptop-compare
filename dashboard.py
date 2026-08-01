@@ -794,6 +794,10 @@ def render_product_search(df):
     endpoint directly - slower, and consumes Firecrawl credits for the
     platforms that need it (Amazon, Noon, Extra), so it only runs when
     the user explicitly asks for it."""
+    import sys as _sys
+    from pathlib import Path as _Path
+    _sys.path.insert(0, str(_Path(__file__).parent / 'src'))
+
     st.markdown("## 🔎 Search for a Specific Product")
     st.markdown(
         "Narrow by brand/spec below for an exact match within that brand, or leave them "
@@ -820,14 +824,52 @@ def render_product_search(df):
         placeholder="e.g. M5 Max 48GB, ThinkPad T14, i7 16GB 512GB"
     )
 
+    st.markdown("---")
+    st.markdown("### 📎 Check a Specific Product Link")
+    st.caption(
+        "Found a SKU on Amazon.sa, Jarir, Extra, or Noon that isn't in the catalog above "
+        "(e.g. missed by the last scrape/refresh)? Paste its product page link(s) below - "
+        "one per line - and we'll fetch the price directly."
+    )
+
+    pasted_urls = st.text_area(
+        "Product link(s), one per line",
+        key="pasted_product_urls",
+        placeholder="https://www.jarir.com/sa-en/...\nhttps://www.amazon.sa/dp/...",
+        height=100
+    )
+
+    if st.button("📎 Check These Links", key="check_links_button", disabled=not pasted_urls.strip()):
+        urls = [u.strip() for u in pasted_urls.splitlines() if u.strip()]
+        with st.spinner(f"Checking {len(urls)} link(s)..."):
+            from utils.live_search import check_product_urls
+            try:
+                link_results = check_product_urls(urls)
+            except Exception as e:
+                st.error(f"Link check failed: {e}")
+                link_results = []
+
+        for entry in link_results:
+            with st.container(border=True):
+                title = entry.get('title') or '(title not detected)'
+                st.markdown(f"**{title}**")
+                st.caption(f"Platform: {entry.get('platform', 'Unknown')}")
+
+                price = entry.get('price')
+                label = f"Open · SAR {price:,.0f}" if price else "Open Product Page"
+                st.link_button(label, entry['url'], use_container_width=False)
+
+                if entry.get('error'):
+                    st.caption(f"⚠️ {entry['error']}")
+
+    st.markdown("---")
+    st.markdown("## 🔍 Search the Catalog")
+
     no_filters_set = all(v == 'All' for v in (search_brand, search_ram, search_storage, search_processor))
     if not query and no_filters_set:
         st.info("Enter a search term or pick a brand/spec filter above to get started.")
         return
 
-    import sys as _sys
-    from pathlib import Path as _Path
-    _sys.path.insert(0, str(_Path(__file__).parent / 'src'))
     from utils.live_search import search_local
 
     st.markdown("### 📚 Results from existing scraped data")

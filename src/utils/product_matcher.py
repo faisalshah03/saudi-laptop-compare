@@ -631,7 +631,25 @@ class ProductMatcher:
         n1, n2 = strip_wrapper(v1), strip_wrapper(v2)
         if not n1 or not n2:
             return False
-        return n1 == n2 or n1.startswith(n2) or n2.startswith(n1)
+        if n1 == n2:
+            return True
+
+        # Prefix matching is meant for a bare tier ("Intel Core i5")
+        # matching a fuller SKU ("Intel Core i5-1355U") - the SAME chip
+        # described with more/less detail. But Apple's Pro/Max/Ultra
+        # suffix names a genuinely DIFFERENT, more powerful chip, not
+        # extra detail on the same one - "M5" is a text prefix of "M5
+        # Max"/"M5 Pro" but must NOT match them, or three distinct chips
+        # (M5, M5 Pro, M5 Max - different core counts, prices) collapse
+        # into "the same processor". This previously merged dozens of
+        # unrelated MacBook configs into single rows across real data.
+        tier_suffixes = ('pro', 'max', 'ultra')
+        if n1.startswith(n2) and any(n1[len(n2):].strip().startswith(t) for t in tier_suffixes):
+            return False
+        if n2.startswith(n1) and any(n2[len(n1):].strip().startswith(t) for t in tier_suffixes):
+            return False
+
+        return n1.startswith(n2) or n2.startswith(n1)
 
     def _model_numeric_tokens(self, model_name: str) -> Set[str]:
         """Extract distinguishing numeric tokens from a model name (e.g.
@@ -691,6 +709,36 @@ class ProductMatcher:
         if specs1.get('model_number') and specs1['model_number'] == specs2.get('model_number'):
             return MatchResult(score=1.0, tier=1, details="Exact model number match")
 
+        # Hard gate: processor must agree when present on both sides,
+        # BEFORE any ratio-based scoring. The processor is a physical
+        # hardware spec - for the same real product it should always be
+        # identical, never "close enough". Without this gate, Tier 2's
+        # ratio (matches/comparable >= 0.8) tolerates ONE field
+        # disagreeing out of 5, and since brand+model_name are close to
+        # automatic matches for a lineup-named brand (e.g. Apple's
+        # model_name is always just "Apple MacBook Pro" regardless of
+        # chip), that leaves processor/ram/storage as the only real
+        # differentiators - letting a processor mismatch alone (M4 vs
+        # M5, or M5 vs M5 Max) still hit exactly 4/5 = 80% and pass.
+        # This was silently merging dozens of genuinely different
+        # Apple configs into single rows.
+        if specs1.get('processor') and specs2.get('processor') \
+                and not self._processors_match(specs1['processor'], specs2['processor']):
+            return MatchResult(score=0.0, tier=0, details="Processor mismatch (hard gate)")
+
+        # Same reasoning for RAM/storage - fixed hardware config for a
+        # given physical product, never "close enough" for a real match.
+        # Without this, e.g. an M5/16GB/512GB and an M5/24GB/1TB (same
+        # chip, different config = genuinely different, differently-
+        # priced SKUs) could still hit the 80% ratio threshold via the
+        # same brand+model_name "free matches" as the processor case.
+        if specs1.get('ram') and specs2.get('ram') \
+                and self._normalize_capacity(specs1['ram']) != self._normalize_capacity(specs2['ram']):
+            return MatchResult(score=0.0, tier=0, details="RAM mismatch (hard gate)")
+        if specs1.get('storage') and specs2.get('storage') \
+                and self._normalize_capacity(specs1['storage']) != self._normalize_capacity(specs2['storage']):
+            return MatchResult(score=0.0, tier=0, details="Storage mismatch (hard gate)")
+
         # Tier 2: spec overlap, scored only over fields present on both sides.
         # model_name uses fuzzy comparison (see _model_names_match) since
         # exact string equality rarely holds across platforms/sellers for
@@ -749,9 +797,20 @@ class ProductMatcher:
                 return self._normalize_capacity(a) == self._normalize_capacity(b)
             return self.normalize_spec_key(a) == self.normalize_spec_key(b)
 
-        other_spec_match = any(
-            specs1.get(s) and specs2.get(s) and _spec_matches(s, specs1[s], specs2[s])
-            for s in ['processor', 'ram', 'storage']
+        # Requires ALL comparable fields to agree, not just one - "any
+        # one matches" let two genuinely different products slip through
+        # whenever model_name is a generic product-line name rather than
+        # a specific model (e.g. Apple's model_name is always just
+        # "Apple MacBook Pro" for every chip/RAM/storage config, so its
+        # fuzzy similarity is trivially ~100% and provides zero
+        # discriminating power). With "any one", an M5/16GB/1TB and an
+        # M5 Max/48GB/2TB could still match purely by coincidentally
+        # sharing one field (e.g. same storage tier) despite the
+        # processor and RAM both disagreeing - this merged dozens of
+        # distinct Apple SKUs into single rows across real data.
+        comparable_other_specs = [s for s in ('processor', 'ram', 'storage') if specs1.get(s) and specs2.get(s)]
+        other_spec_match = bool(comparable_other_specs) and all(
+            _spec_matches(s, specs1[s], specs2[s]) for s in comparable_other_specs
         )
 
         if brand_match and other_spec_match and specs1.get('model_name') and specs2.get('model_name'):
