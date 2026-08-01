@@ -24,6 +24,148 @@ st.set_page_config(
 BASE_DIR = Path(__file__).parent
 
 
+def inject_css():
+    """Injects custom CSS for a modern look on top of Streamlit's defaults."""
+    st.markdown("""
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+        html, body, [class*="css"] {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Light-gray canvas so white cards read as cards, kit-style */
+        [data-testid="stAppViewContainer"] > .main {
+            background: #F5F6FA;
+        }
+
+        /* Tighten default top padding */
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        /* Hero header */
+        .hero-banner {
+            background: linear-gradient(120deg, #4F46E5 0%, #7C3AED 100%);
+            border-radius: 16px;
+            padding: 1.75rem 2rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.25);
+        }
+        .hero-banner h1 {
+            color: #FFFFFF;
+            font-size: 1.65rem;
+            font-weight: 800;
+            margin: 0 0 0.35rem 0;
+            letter-spacing: -0.02em;
+        }
+        .hero-banner p {
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 0.95rem;
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* Metric cards */
+        [data-testid="stMetric"] {
+            background: #FFFFFF;
+            border: 1px solid #ECECF4;
+            border-radius: 14px;
+            padding: 1rem 1.1rem;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+            transition: box-shadow 0.15s ease;
+        }
+        [data-testid="stMetric"]:hover {
+            box-shadow: 0 4px 14px rgba(16, 24, 40, 0.1);
+            transform: translateY(-1px);
+        }
+        [data-testid="stMetricLabel"] {
+            font-weight: 600;
+            color: #6B7280;
+        }
+        [data-testid="stMetricValue"] {
+            font-weight: 700;
+            color: #1A1D29;
+        }
+
+        /* Colorful top accents on KPI rows, kit-style */
+        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(1) [data-testid="stMetric"] {
+            border-top: 3px solid #4F46E5;
+        }
+        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(2) [data-testid="stMetric"] {
+            border-top: 3px solid #7C3AED;
+        }
+        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(3) [data-testid="stMetric"] {
+            border-top: 3px solid #F59E0B;
+        }
+        [data-testid="stHorizontalBlock"]:has([data-testid="stMetric"]) [data-testid="stColumn"]:nth-of-type(4) [data-testid="stMetric"] {
+            border-top: 3px solid #10B981;
+        }
+
+        /* Tabs */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 4px;
+            background: #F5F6FA;
+            border-radius: 12px;
+            padding: 4px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            border-radius: 9px;
+            font-weight: 600;
+            color: #6B7280;
+            padding: 8px 16px;
+        }
+        .stTabs [aria-selected="true"] {
+            background: #FFFFFF !important;
+            color: #4F46E5 !important;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+        }
+
+        /* Sidebar */
+        [data-testid="stSidebar"] {
+            background: #F9FAFC;
+            border-right: 1px solid #ECECF4;
+        }
+        [data-testid="stSidebar"] h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1A1D29;
+        }
+
+        /* Buttons */
+        .stButton button, .stDownloadButton button {
+            border-radius: 9px;
+            font-weight: 600;
+            border: 1px solid #ECECF4;
+            transition: all 0.15s ease;
+        }
+        .stButton button:hover, .stDownloadButton button:hover {
+            border-color: #4F46E5;
+            color: #4F46E5;
+        }
+
+        /* Dataframe / table container */
+        [data-testid="stDataFrame"] {
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #ECECF4;
+        }
+
+        /* Section headings */
+        h2, h3 {
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        /* Info/warning/error boxes */
+        .stAlert {
+            border-radius: 10px;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+
 def get_secret(key: str, default: str = None):
     """Get config value from Streamlit secrets (cloud) or env var (local)."""
     try:
@@ -126,8 +268,14 @@ def dataframe_to_excel_bytes(df: pd.DataFrame) -> bytes:
 def main():
     """Main Streamlit app."""
 
-    st.title("🌏 Saudi Laptop Price Comparison")
-    st.markdown("Compare laptop & desktop prices across Amazon.sa, Jarir, Extra, & Noon")
+    inject_css()
+
+    st.markdown("""
+    <div class="hero-banner">
+        <h1>🌏 Saudi Laptop Price Comparison</h1>
+        <p>Compare laptop &amp; desktop prices across Amazon.sa, Jarir, Extra, &amp; Noon</p>
+    </div>
+    """, unsafe_allow_html=True)
 
     if not check_password():
         st.stop()
@@ -257,9 +405,14 @@ def render_price_comparison(df):
             'title', 'category', 'subtype', 'brand', 'model_name', 'model_number',
             'manufacturer_number', 'processor', 'processor_full', 'cpu_power', 'ram', 'storage',
             'graphics_card', 'ai_classification', 'npu_tops',
-            'amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price',
+            'amazon_sa_price', 'amazon_sa_link',
+            'jarir_price', 'jarir_link',
+            'extra_price', 'extra_link',
+            'noon_price', 'noon_link',
             'best_price', 'best_price_platform'
         ]
+
+        link_cols = ['amazon_sa_link', 'jarir_link', 'extra_link', 'noon_link']
 
         column_labels = {
             'title': 'Title',
@@ -278,9 +431,13 @@ def render_price_comparison(df):
             'ai_classification': 'AI',
             'npu_tops': 'NPU TOPS',
             'amazon_sa_price': 'Amazon.sa',
+            'amazon_sa_link': 'Amazon.sa Link',
             'jarir_price': 'Jarir',
+            'jarir_link': 'Jarir Link',
             'extra_price': 'Extra',
+            'extra_link': 'Extra Link',
             'noon_price': 'Noon',
+            'noon_link': 'Noon Link',
             'best_price': 'Best Price',
             'best_price_platform': 'Best On',
         }
@@ -296,13 +453,22 @@ def render_price_comparison(df):
                     lambda x: f"SAR {x:,.0f}" if pd.notna(x) else "N/A"
                 )
 
-        formatted_df = formatted_df.fillna('N/A')
+        # Link columns stay as raw URLs (or NaN) for st.column_config.LinkColumn
+        # to render as clickable - fillna('N/A') would make them invalid links.
+        non_link_cols = [c for c in formatted_df.columns if c not in link_cols]
+        formatted_df[non_link_cols] = formatted_df[non_link_cols].fillna('N/A')
         formatted_df = formatted_df.rename(columns=column_labels)
+
+        link_column_config = {
+            column_labels[c]: st.column_config.LinkColumn(column_labels[c], display_text="🔗 Open")
+            for c in link_cols if c in display_df.columns
+        }
 
         st.dataframe(
             formatted_df,
             use_container_width=True,
-            height=500
+            height=500,
+            column_config=link_column_config
         )
 
         # ============= DOWNLOAD SECTION =============
@@ -469,9 +635,20 @@ def render_gap_analysis():
         'compare_price', 'compare_link', 'compare_similar_product', 'match_confidence'
     ]
     available_cols = [c for c in display_cols if c in filtered.columns]
-    show_df = filtered[available_cols].copy().fillna('N/A')
+    show_df = filtered[available_cols].copy()
+    gap_link_cols = [c for c in ('base_link', 'compare_link') if c in show_df.columns]
+    non_link_cols = [c for c in show_df.columns if c not in gap_link_cols]
+    show_df[non_link_cols] = show_df[non_link_cols].fillna('N/A')
 
-    st.dataframe(show_df, use_container_width=True, height=500)
+    st.dataframe(
+        show_df,
+        use_container_width=True,
+        height=500,
+        column_config={
+            'base_link': st.column_config.LinkColumn('base_link', display_text="🔗 Open"),
+            'compare_link': st.column_config.LinkColumn('compare_link', display_text="🔗 Open"),
+        }
+    )
 
     csv = show_df.to_csv(index=False)
     st.download_button(
@@ -521,10 +698,26 @@ def render_product_search(df):
         local_df = pd.DataFrame(local_results)
         display_cols = [
             'title', 'category', 'brand', 'model_name', 'processor', 'ram', 'storage',
-            'amazon_sa_price', 'jarir_price', 'extra_price', 'noon_price', 'best_price'
+            'amazon_sa_price', 'amazon_sa_link',
+            'jarir_price', 'jarir_link',
+            'extra_price', 'extra_link',
+            'noon_price', 'noon_link',
+            'best_price'
         ]
+        search_link_cols = ['amazon_sa_link', 'jarir_link', 'extra_link', 'noon_link']
         available_cols = [c for c in display_cols if c in local_df.columns]
-        st.dataframe(local_df[available_cols].fillna('N/A'), use_container_width=True, height=350)
+        show_local_df = local_df[available_cols].copy()
+        non_link_cols = [c for c in available_cols if c not in search_link_cols]
+        show_local_df[non_link_cols] = show_local_df[non_link_cols].fillna('N/A')
+        st.dataframe(
+            show_local_df,
+            use_container_width=True,
+            height=350,
+            column_config={
+                c: st.column_config.LinkColumn(c, display_text="🔗 Open")
+                for c in search_link_cols if c in show_local_df.columns
+            }
+        )
     else:
         st.warning("No matches in the existing scraped catalog.")
 
@@ -553,7 +746,12 @@ def render_product_search(df):
                     'Price (SAR)': p.get('price'),
                     'Link': p.get('product_url'),
                 } for p in products]
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, height=min(250, 50 + 35 * len(rows)))
+                st.dataframe(
+                    pd.DataFrame(rows),
+                    use_container_width=True,
+                    height=min(250, 50 + 35 * len(rows)),
+                    column_config={'Link': st.column_config.LinkColumn('Link', display_text="🔗 Open")}
+                )
             else:
                 st.caption("No results.")
 

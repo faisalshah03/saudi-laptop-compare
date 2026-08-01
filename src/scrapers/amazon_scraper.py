@@ -208,7 +208,7 @@ class AmazonScraper:
             if len(category_products) >= max_products:
                 break
 
-            time.sleep(random.uniform(0.8, 2.0))  # jittered delay between pages
+            time.sleep(random.uniform(3.5, 4.5))  # jittered delay between pages
 
         category_products = category_products[:max_products]
         self.products.extend(category_products)

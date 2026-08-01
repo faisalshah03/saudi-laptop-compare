@@ -199,7 +199,7 @@ class ExtraScraper:
             if len(collected) >= max_products:
                 break
 
-            time.sleep(random.uniform(1.0, 2.0))
+            time.sleep(random.uniform(3.5, 4.5))
 
         collected = collected[:max_products]
         self.products.extend(collected)

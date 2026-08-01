@@ -222,7 +222,7 @@ class NoonScraper:
             if nb_pages and page >= nb_pages:
                 break
 
-            time.sleep(random.uniform(1.0, 2.5))  # jittered delay between pages
+            time.sleep(random.uniform(3.5, 4.5))  # jittered delay between pages
 
         collected = collected[:max_products]
         self.products.extend(collected)
