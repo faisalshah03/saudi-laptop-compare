@@ -61,6 +61,7 @@ class ProductMatcher:
         'xps': ['xps'],
         'vivobook': ['vivobook'],
         'thinkpad': ['thinkpad'],
+        'pro tech solutions': ['pro tech solutions'],
     }
 
     # Fields a scraper may already have populated from a platform's own
@@ -178,7 +179,7 @@ class ProductMatcher:
         """Extract specifications from product title using regex patterns."""
         title_lower = title.lower()
         specs = {
-            'brand': self._extract_brand(title_lower),
+            'brand': self._extract_brand(title_lower, title),
             'model_name': self._extract_model_name(title),
             'model_number': self._extract_model_number(title),
             'processor': self._extract_processor(title),
@@ -211,12 +212,62 @@ class ProductMatcher:
             return 'Used'
         return 'New'
 
-    def _extract_brand(self, title_lower: str) -> str:
-        """Extract brand from title."""
+    # Generic leading words that must NOT be mistaken for a brand name
+    # by the fallback heuristic below (product-type descriptors, specs,
+    # condition markers, etc. that commonly open a title).
+    _GENERIC_LEADING_WORDS = {
+        'gaming', 'desktop', 'desktops', 'business', 'office', 'mini', 'pc',
+        'computer', 'computers', 'renewed', 'refurbished', 'used', 'open',
+        'new', 'all-in-one', 'multimedia', 'workstation', 'tower', 'micro',
+        'personal', 'the', 'a', 'an', 'inch', 'core', 'intel',
+        'amd', 'slim', 'compact', 'portable', 'affordable', 'budget',
+        'professional', 'ultra', 'premium', 'complete', 'high', 'laptop',
+        'laptops', 'notebook', 'led', 'lcd', 'grade', 'model', 'latest',
+        'newest', 'international', 'version', 'edition', 'black', 'white',
+        'silver', 'gray', 'grey',
+    }
+
+    def _extract_brand(self, title_lower: str, raw_title: str = '') -> str:
+        """Extract brand from title.
+
+        Known-alias match first, since it's exact and reliable. Falls
+        back to the first non-generic leading word when no alias
+        matched: Amazon's desktop category is full of boutique/system-
+        integrator gaming-PC builders (CyberPowerPC, TechTroniX, AESNO,
+        GMKtec, NiPoGi, Beelink, ACEMAGICIAN, ...) that aren't in
+        BRAND_ALIASES and never will be exhaustively - without this
+        fallback these were real, correctly-priced listings with
+        brand=None, which silently made them unfindable via the Brand
+        filter dropdown (built from `df['brand'].dropna().unique()`,
+        which never lists None). These listings near-universally open
+        with "BRANDNAME <product type>...", so the leading word is a
+        reliable signal once generic descriptors/condition markers
+        ("Renewed - Probook 440...", "Renewed Grade A Honor
+        MagicBook...") are skipped past rather than just checked once
+        and given up on.
+        """
+        # Only search the title's leading words for a known brand, not
+        # the whole string - a bundle listing like "ASA Gaming PC ...
+        # ASUS DUAL RTX 5060 8GB OC..." mentions "ASUS" mid-title as the
+        # GPU's brand, not the PC's own brand (which is "ASA"); matching
+        # anywhere in the title previously mislabeled this as "Asus".
+        leading_words = ' '.join(title_lower.split()[:4])
         for canonical, aliases in self.BRAND_ALIASES.items():
             for alias in aliases:
-                if f' {alias} ' in f' {title_lower} ' or title_lower.startswith(alias):
+                if f' {alias} ' in f' {leading_words} ' or leading_words.startswith(alias):
                     return canonical.title()
+
+        # Always normalize to Title Case (matching the existing
+        # convention from BRAND_ALIASES, e.g. "Hp"/"Asus"/"Msi") rather
+        # than preserving original casing - the same brand is written
+        # inconsistently across listings/platforms ("CYBERPOWERPC" vs
+        # "CyberpowerPC"), which otherwise created duplicate near-
+        # identical entries in the Brand filter dropdown.
+        candidate_words = re.findall(r"[A-Za-z][A-Za-z0-9'-]*", raw_title.strip())
+        for word in candidate_words[:4]:
+            if len(word) >= 3 and word.lower() not in self._GENERIC_LEADING_WORDS:
+                return word.title()
+
         return None
 
     # Known model-line keywords, used as a fallback when the comma-split
@@ -259,7 +310,7 @@ class ProductMatcher:
         cleaned = re.sub(r'\s{2,}', ' ', cleaned)
 
         # Remove the brand prefix if present, keep the rest as model name
-        brand = self._extract_brand(title.lower())
+        brand = self._extract_brand(title.lower(), title)
         if brand and cleaned.lower().startswith(brand.lower()):
             cleaned = cleaned[len(brand):].strip()
 

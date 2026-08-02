@@ -929,6 +929,12 @@ def render_product_search(df):
         )
 
         if local_results:
+            header_cols = st.columns([3, 1, 1, 1, 1])
+            with header_cols[0]:
+                st.caption("PRODUCT")
+            for col, label in zip(header_cols[1:], ["Amazon.sa", "Jarir", "Extra", "Noon"]):
+                with col:
+                    st.caption(label.upper())
             for p in local_results:
                 _render_product_card(p)
         else:
