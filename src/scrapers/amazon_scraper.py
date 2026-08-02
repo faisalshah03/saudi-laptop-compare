@@ -222,13 +222,45 @@ class AmazonScraper:
             max_products
         )
 
-    def scrape_desktops(self, max_products: int = 50) -> List[Dict[str, Any]]:
-        """Scrape Amazon.sa desktop computers listing."""
-        return self.scrape_listing(
+    def scrape_desktops(self, max_products: int = 50, gaming_supplement: int = 40) -> List[Dict[str, Any]]:
+        """Scrape Amazon.sa desktop computers listing.
+
+        Runs the generic "desktop computers" query plus a supplementary
+        "gaming desktop" query and merges/dedupes by product_url - the
+        generic query alone is dominated by mainstream Dell/HP/mini-PC
+        listings and never surfaces boutique gaming-PC builders
+        (Infiniarc, CyberPowerPC, TechTroniX, ...) within our page
+        limit, even though they're real, priced Amazon.sa listings.
+        """
+        primary = self.scrape_listing(
             PLATFORMS['amazon_sa']['desktop_url'],
             'Desktop',
             max_products
         )
+
+        seen_urls = {p['product_url'] for p in primary}
+        gaming_url = PLATFORMS['amazon_sa'].get('gaming_desktop_url')
+        new_gaming = []
+        if gaming_url and gaming_supplement > 0:
+            gaming_products = self.scrape_listing(gaming_url, 'Desktop', gaming_supplement)
+            new_gaming = [p for p in gaming_products if p['product_url'] not in seen_urls]
+            print(f"[Amazon] Gaming desktop supplement: {len(new_gaming)} new products "
+                  f"({len(gaming_products) - len(new_gaming)} already found by generic query)")
+
+            # scrape_listing() appends everything it finds to
+            # self.products unconditionally, so the overlap between the
+            # two queries would otherwise be double-counted there -
+            # dedupe self.products by product_url, keeping first
+            # occurrence, rather than trying to selectively skip appends
+            # (scrape_listing doesn't take a seen_urls param).
+            deduped, seen = [], set()
+            for p in self.products:
+                if p['product_url'] not in seen:
+                    deduped.append(p)
+                    seen.add(p['product_url'])
+            self.products = deduped
+
+        return primary + new_gaming
 
     def scrape_all(self, max_per_category: int = 50) -> List[Dict[str, Any]]:
         """Scrape both laptops and desktops."""

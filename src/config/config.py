@@ -16,6 +16,13 @@ PLATFORMS = {
         'name': 'Amazon.sa',
         'laptop_url': 'https://www.amazon.sa/s?k=laptops&i=computers',
         'desktop_url': 'https://www.amazon.sa/s?k=desktop+computers&i=computers',
+        # Supplementary query - the generic "desktop computers" search is
+        # dominated by mainstream Dell/HP/mini-PC listings, so boutique
+        # system-integrator gaming-PC brands (Infiniarc, CyberPowerPC,
+        # TechTroniX, ...) never rank within our page-limited scrape of
+        # it. "gaming desktop" ranks these much higher, surfacing brands
+        # the generic query structurally misses.
+        'gaming_desktop_url': 'https://www.amazon.sa/s?k=gaming+desktop&i=computers',
     },
     'extra': {
         'name': 'Extra.com',
