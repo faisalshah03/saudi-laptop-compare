@@ -832,14 +832,17 @@ def render_gap_analysis():
 
 
 def _render_product_card(p: dict):
-    """Renders one search result as a card with a real one-click
-    st.link_button per platform. st.dataframe's LinkColumn technically
-    supports links, but requires clicking into the cell first to reveal
-    a small link icon before it opens - confusing/easy to miss,
-    especially on Streamlit Cloud. st.link_button is a genuine
-    single-click anchor, so search results (a small result set) use
-    cards instead of a table for this reason."""
-    with st.container(border=True):
+    """Renders one search result as a compact single-line list row
+    (title/specs on the left, one real one-click st.link_button per
+    platform on the right) rather than a full bordered card, so a page
+    of 30 results reads as a scannable list, not a stack of boxes.
+    st.dataframe's LinkColumn technically supports links, but requires
+    clicking into the cell first to reveal a small link icon before it
+    opens - confusing/easy to miss, especially on Streamlit Cloud.
+    st.link_button is a genuine single-click anchor."""
+    title_col, amazon_col, jarir_col, extra_col, noon_col = st.columns([3, 1, 1, 1, 1])
+
+    with title_col:
         st.markdown(f"**{p.get('title', 'Untitled')}**")
         specs = ' · '.join(str(v) for v in [p.get('brand'), p.get('processor'), p.get('ram'), p.get('storage')] if v)
         condition = p.get('condition')
@@ -848,26 +851,27 @@ def _render_product_card(p: dict):
         if specs:
             st.caption(specs)
 
-        cols = st.columns(4)
-        platforms = [
-            ('Amazon.sa', p.get('amazon_sa_price'), p.get('amazon_sa_link')),
-            ('Jarir', p.get('jarir_price'), p.get('jarir_link')),
-            ('Extra', p.get('extra_price'), p.get('extra_link')),
-            ('Noon', p.get('noon_price'), p.get('noon_link')),
-        ]
-        for col, (label, price, link) in zip(cols, platforms):
-            with col:
-                # link/price can come back as float NaN (not None) once a
-                # column has passed through a DataFrame with an all-missing
-                # subset - `if link:` alone is True for NaN, which then
-                # crashes st.link_button expecting a URL string.
-                has_link = isinstance(link, str) and link
-                if has_link:
-                    has_price = price is not None and pd.notna(price)
-                    text = f"{label} · SAR {price:,.0f}" if has_price else f"Open on {label}"
-                    st.link_button(text, link, use_container_width=True)
-                else:
-                    st.caption(f"{label}: N/A")
+    platforms = [
+        (amazon_col, 'Amazon.sa', p.get('amazon_sa_price'), p.get('amazon_sa_link')),
+        (jarir_col, 'Jarir', p.get('jarir_price'), p.get('jarir_link')),
+        (extra_col, 'Extra', p.get('extra_price'), p.get('extra_link')),
+        (noon_col, 'Noon', p.get('noon_price'), p.get('noon_link')),
+    ]
+    for col, label, price, link in platforms:
+        with col:
+            # link/price can come back as float NaN (not None) once a
+            # column has passed through a DataFrame with an all-missing
+            # subset - `if link:` alone is True for NaN, which then
+            # crashes st.link_button expecting a URL string.
+            has_link = isinstance(link, str) and link
+            if has_link:
+                has_price = price is not None and pd.notna(price)
+                text = f"SAR {price:,.0f}" if has_price else "Open"
+                st.link_button(text, link, use_container_width=True)
+            else:
+                st.caption(f"{label}: N/A")
+
+    st.divider()
 
 
 def render_product_search(df):
