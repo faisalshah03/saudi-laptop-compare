@@ -781,6 +781,20 @@ def render_gap_analysis():
     ]
     available_cols = [c for c in display_cols if c in filtered.columns]
     show_df = filtered[available_cols].copy().reset_index(drop=True)
+
+    # Format price columns to strings BEFORE fillna - fillna('N/A') on a
+    # raw numeric column leaves a MIXED float/string column (real prices
+    # stay as floats, only the NaN cells become the string 'N/A'), which
+    # crashes Streamlit's PyArrow serialization entirely
+    # (ArrowTypeError: "Expected bytes, got a 'float' object") the
+    # moment this table renders - this took the live app down on every
+    # visit to this tab since the row-selection change was deployed.
+    for price_col in ('base_price', 'compare_price'):
+        if price_col in show_df.columns:
+            show_df[price_col] = show_df[price_col].apply(
+                lambda x: f"SAR {x:,.0f}" if pd.notna(x) else "N/A"
+            )
+
     gap_link_cols = [c for c in ('base_link', 'compare_link') if c in show_df.columns]
     non_link_cols = [c for c in show_df.columns if c not in gap_link_cols]
     show_df[non_link_cols] = show_df[non_link_cols].fillna('N/A')
