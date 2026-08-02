@@ -146,6 +146,7 @@ class ProductMatcher:
         # data, always title-derived
         specs['cpu_power'] = title_specs.get('cpu_power')
         specs['npu_tops'] = title_specs.get('npu_tops')
+        specs['condition'] = title_specs.get('condition') or 'New'
 
         specs['ai_classification'] = self._classify_ai(
             specs.get('brand'), specs.get('processor'), specs.get('processor_full'), raw_title
@@ -188,8 +189,27 @@ class ProductMatcher:
             'storage': self._extract_storage(title),
             'graphics_card': self._extract_gpu(title),
             'subtype': self._extract_subtype(title),
+            'condition': self._extract_condition(title),
         }
         return {k: v for k, v in specs.items() if v}
+
+    def _extract_condition(self, title: str) -> str:
+        """New/Renewed/Refurbished/Open Box/Used, from title keywords.
+        Defaults to 'New' when the title states no condition - none of
+        the platforms expose this as structured data, and the large
+        majority of listings are new-in-box with no explicit marker."""
+        if not title:
+            return 'New'
+        t = title.lower()
+        if re.search(r'\brefurbished\b', t):
+            return 'Refurbished'
+        if re.search(r'\brenewed\b', t):
+            return 'Renewed'
+        if re.search(r'\bopen\s*box\b', t):
+            return 'Open Box'
+        if re.search(r'\b(?:pre-?owned|used)\b', t):
+            return 'Used'
+        return 'New'
 
     def _extract_brand(self, title_lower: str) -> str:
         """Extract brand from title."""
@@ -739,6 +759,14 @@ class ProductMatcher:
                 and self._normalize_capacity(specs1['storage']) != self._normalize_capacity(specs2['storage']):
             return MatchResult(score=0.0, tier=0, details="Storage mismatch (hard gate)")
 
+        # A New listing and a Renewed/Refurbished listing of otherwise
+        # identical specs are still genuinely different products (very
+        # different price, different warranty) - never merge across
+        # condition. Both sides always have a value (extract_specs
+        # defaults to 'New'), so this is always a hard comparison.
+        if specs1.get('condition') and specs2.get('condition') and specs1['condition'] != specs2['condition']:
+            return MatchResult(score=0.0, tier=0, details="Condition mismatch (hard gate)")
+
         # Tier 2: spec overlap, scored only over fields present on both sides.
         # model_name uses fuzzy comparison (see _model_names_match) since
         # exact string equality rarely holds across platforms/sellers for
@@ -951,6 +979,7 @@ class ProductMatcher:
                 'graphics_card': specs.get('graphics_card'),
                 'ai_classification': specs.get('ai_classification'),
                 'npu_tops': specs.get('npu_tops'),
+                'condition': specs.get('condition', 'New'),
             }
 
             # Aggregate platform-specific data

@@ -425,6 +425,38 @@ def render_price_comparison(df):
         if selected_ai != 'All':
             df = df[df['ai_classification'] == selected_ai]
 
+    # Condition filter (New / Renewed / Refurbished / Open Box / Used)
+    if 'condition' in df.columns:
+        condition_options = ['All'] + sorted(df['condition'].dropna().unique().tolist())
+        selected_condition = st.sidebar.selectbox("Condition", condition_options)
+
+        if selected_condition != 'All':
+            df = df[df['condition'] == selected_condition]
+
+    # Processor filter
+    if 'processor' in df.columns:
+        processor_options = ['All'] + sorted(df['processor'].dropna().unique().tolist())
+        selected_processor = st.sidebar.selectbox("Processor", processor_options)
+
+        if selected_processor != 'All':
+            df = df[df['processor'] == selected_processor]
+
+    # RAM filter
+    if 'ram' in df.columns:
+        ram_options = ['All'] + sorted(df['ram'].dropna().unique().tolist(), key=lambda x: str(x))
+        selected_ram = st.sidebar.selectbox("RAM", ram_options)
+
+        if selected_ram != 'All':
+            df = df[df['ram'] == selected_ram]
+
+    # Storage filter
+    if 'storage' in df.columns:
+        storage_options = ['All'] + sorted(df['storage'].dropna().unique().tolist(), key=lambda x: str(x))
+        selected_storage = st.sidebar.selectbox("Storage", storage_options)
+
+        if selected_storage != 'All':
+            df = df[df['storage'] == selected_storage]
+
     # Price range filter
     if not df.empty and 'best_price' in df.columns:
         price_col = df['best_price'].dropna()
@@ -487,7 +519,7 @@ def render_price_comparison(df):
     if not df.empty:
         # Select columns to display
         display_cols = [
-            'title', 'category', 'subtype', 'brand', 'model_name', 'model_number',
+            'title', 'category', 'subtype', 'condition', 'brand', 'model_name', 'model_number',
             'manufacturer_number', 'processor', 'processor_full', 'cpu_power', 'ram', 'storage',
             'graphics_card', 'ai_classification', 'npu_tops',
             'amazon_sa_price', 'amazon_sa_link',
@@ -503,6 +535,7 @@ def render_price_comparison(df):
             'title': 'Title',
             'category': 'Category',
             'subtype': 'Subtype',
+            'condition': 'Condition',
             'brand': 'Brand',
             'model_name': 'Model',
             'model_number': 'Model Number',
@@ -528,7 +561,7 @@ def render_price_comparison(df):
         }
 
         available_cols = [col for col in display_cols if col in df.columns]
-        display_df = df[available_cols].copy()
+        display_df = df[available_cols].copy().reset_index(drop=True)
 
         # Format price columns for display
         formatted_df = display_df.copy()
@@ -549,12 +582,40 @@ def render_price_comparison(df):
             for c in link_cols if c in display_df.columns
         }
 
-        st.dataframe(
+        st.caption("👆 Click on a row to get one-click links to that product on each platform (the link cells in the table need two clicks - select the cell, then click its small icon).")
+
+        table_event = st.dataframe(
             formatted_df,
             use_container_width=True,
             height=500,
-            column_config=link_column_config
+            column_config=link_column_config,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="price_comparison_table"
         )
+
+        selected_rows = table_event.get("selection", {}).get("rows", []) if table_event else []
+        if selected_rows:
+            row = display_df.iloc[selected_rows[0]]
+            with st.container(border=True):
+                st.markdown(f"**Selected: {row.get('title', 'Untitled')}**")
+                link_row_cols = st.columns(4)
+                platform_defs = [
+                    ('Amazon.sa', 'amazon_sa_price', 'amazon_sa_link'),
+                    ('Jarir', 'jarir_price', 'jarir_link'),
+                    ('Extra', 'extra_price', 'extra_link'),
+                    ('Noon', 'noon_price', 'noon_link'),
+                ]
+                for col, (label, price_key, link_key) in zip(link_row_cols, platform_defs):
+                    with col:
+                        price = row.get(price_key)
+                        link = row.get(link_key)
+                        if isinstance(link, str) and link:
+                            has_price = price is not None and pd.notna(price)
+                            text = f"{label} · SAR {price:,.0f}" if has_price else f"Open on {label}"
+                            st.link_button(text, link, use_container_width=True)
+                        else:
+                            st.caption(f"{label}: N/A")
 
         # ============= DOWNLOAD SECTION =============
         st.markdown("### 📥 Download Report")
@@ -719,20 +780,39 @@ def render_gap_analysis():
         'compare_price', 'compare_link', 'compare_similar_product', 'match_confidence'
     ]
     available_cols = [c for c in display_cols if c in filtered.columns]
-    show_df = filtered[available_cols].copy()
+    show_df = filtered[available_cols].copy().reset_index(drop=True)
     gap_link_cols = [c for c in ('base_link', 'compare_link') if c in show_df.columns]
     non_link_cols = [c for c in show_df.columns if c not in gap_link_cols]
     show_df[non_link_cols] = show_df[non_link_cols].fillna('N/A')
 
-    st.dataframe(
+    st.caption("👆 Click on a row to get one-click links to that product.")
+
+    gap_table_event = st.dataframe(
         show_df,
         use_container_width=True,
         height=500,
         column_config={
             'base_link': st.column_config.LinkColumn('base_link', display_text="🔗 Open"),
             'compare_link': st.column_config.LinkColumn('compare_link', display_text="🔗 Open"),
-        }
+        },
+        on_select="rerun",
+        selection_mode="single-row",
+        key="gap_analysis_table"
     )
+
+    gap_selected_rows = gap_table_event.get("selection", {}).get("rows", []) if gap_table_event else []
+    if gap_selected_rows:
+        row = show_df.iloc[gap_selected_rows[0]]
+        with st.container(border=True):
+            st.markdown(f"**Selected: {row.get('title', 'Untitled')}**")
+            link_row_cols = st.columns(2)
+            for col, (label, link_key) in zip(link_row_cols, [('Base Platform', 'base_link'), ('Compare Platform (Noon)', 'compare_link')]):
+                with col:
+                    link = row.get(link_key)
+                    if isinstance(link, str) and link:
+                        st.link_button(f"Open on {label}", link, use_container_width=True)
+                    else:
+                        st.caption(f"{label}: N/A")
 
     csv = show_df.to_csv(index=False)
     st.download_button(
@@ -762,6 +842,9 @@ def _render_product_card(p: dict):
     with st.container(border=True):
         st.markdown(f"**{p.get('title', 'Untitled')}**")
         specs = ' · '.join(str(v) for v in [p.get('brand'), p.get('processor'), p.get('ram'), p.get('storage')] if v)
+        condition = p.get('condition')
+        if condition and condition != 'New':
+            specs = f"{specs} · 🔄 {condition}" if specs else f"🔄 {condition}"
         if specs:
             st.caption(specs)
 
@@ -825,6 +908,73 @@ def render_product_search(df):
     )
 
     st.markdown("---")
+    st.markdown("## 🔍 Search the Catalog")
+
+    no_filters_set = all(v == 'All' for v in (search_brand, search_ram, search_storage, search_processor))
+    local_results = []
+
+    if not query and no_filters_set:
+        st.info("Enter a search term or pick a brand/spec filter above to get started.")
+    else:
+        from utils.live_search import search_local
+
+        st.markdown("### 📚 Results from existing scraped data")
+        local_results = search_local(
+            query, df.to_dict('records'), max_results=30,
+            brand=search_brand, ram=search_ram, storage=search_storage, processor=search_processor
+        )
+
+        if local_results:
+            for p in local_results:
+                _render_product_card(p)
+        else:
+            st.warning("No matches in the existing scraped catalog.")
+
+        st.markdown("---")
+        st.markdown("### 🌐 Live Search (checks the actual websites right now)")
+        st.caption(
+            "Slower (10-30s) and uses live scraping credits - only runs when you click the button. "
+            "Useful when the catalog above doesn't have what you're looking for, or you want "
+            "current live prices/stock for a specific item."
+        )
+
+        live_query = query.strip() or ' '.join(
+            v for v in (search_brand, search_processor, search_ram, search_storage) if v and v != 'All'
+        )
+
+        if not local_results:
+            st.info("Not in our existing catalog? Search the 4 sites live right now:")
+
+        if st.button(
+            "🔍 Search Live Across All Platforms",
+            disabled=not live_query,
+            type="primary" if not local_results else "secondary"
+        ):
+            with st.spinner(f"Searching Jarir, Amazon.sa, Noon, and Extra for \"{live_query}\"..."):
+                from utils.live_search import search_live
+                try:
+                    live_results = search_live(live_query, max_per_platform=5)
+                except Exception as e:
+                    st.error(f"Live search failed: {e}")
+                    live_results = {}
+
+            for platform, products in live_results.items():
+                st.markdown(f"**{platform}** ({len(products)} results)")
+                if products:
+                    for p in products:
+                        price = p.get('price')
+                        label = p.get('raw_title', p.get('title', 'View product'))
+                        if price and pd.notna(price):
+                            label = f"SAR {price:,.0f} · {label}"
+                        url = p.get('product_url')
+                        if url:
+                            st.link_button(label[:90], url, use_container_width=True)
+                        else:
+                            st.caption(label)
+                else:
+                    st.caption("No results.")
+
+    st.markdown("---")
     st.markdown("### 📎 Check a Specific Product Link")
     st.caption(
         "Found a SKU on Amazon.sa, Jarir, Extra, or Noon that isn't in the catalog above "
@@ -861,72 +1011,6 @@ def render_product_search(df):
 
                 if entry.get('error'):
                     st.caption(f"⚠️ {entry['error']}")
-
-    st.markdown("---")
-    st.markdown("## 🔍 Search the Catalog")
-
-    no_filters_set = all(v == 'All' for v in (search_brand, search_ram, search_storage, search_processor))
-    if not query and no_filters_set:
-        st.info("Enter a search term or pick a brand/spec filter above to get started.")
-        return
-
-    from utils.live_search import search_local
-
-    st.markdown("### 📚 Results from existing scraped data")
-    local_results = search_local(
-        query, df.to_dict('records'), max_results=30,
-        brand=search_brand, ram=search_ram, storage=search_storage, processor=search_processor
-    )
-
-    if local_results:
-        for p in local_results:
-            _render_product_card(p)
-    else:
-        st.warning("No matches in the existing scraped catalog.")
-
-    st.markdown("---")
-    st.markdown("### 🌐 Live Search (checks the actual websites right now)")
-    st.caption(
-        "Slower (10-30s) and uses live scraping credits - only runs when you click the button. "
-        "Useful when the catalog above doesn't have what you're looking for, or you want "
-        "current live prices/stock for a specific item."
-    )
-
-    live_query = query.strip() or ' '.join(
-        v for v in (search_brand, search_processor, search_ram, search_storage) if v and v != 'All'
-    )
-
-    if not local_results:
-        st.info("Not in our existing catalog? Search the 4 sites live right now:")
-
-    if st.button(
-        "🔍 Search Live Across All Platforms",
-        disabled=not live_query,
-        type="primary" if not local_results else "secondary"
-    ):
-        with st.spinner(f"Searching Jarir, Amazon.sa, Noon, and Extra for \"{live_query}\"..."):
-            from utils.live_search import search_live
-            try:
-                live_results = search_live(live_query, max_per_platform=5)
-            except Exception as e:
-                st.error(f"Live search failed: {e}")
-                live_results = {}
-
-        for platform, products in live_results.items():
-            st.markdown(f"**{platform}** ({len(products)} results)")
-            if products:
-                for p in products:
-                    price = p.get('price')
-                    label = p.get('raw_title', p.get('title', 'View product'))
-                    if price and pd.notna(price):
-                        label = f"SAR {price:,.0f} · {label}"
-                    url = p.get('product_url')
-                    if url:
-                        st.link_button(label[:90], url, use_container_width=True)
-                    else:
-                        st.caption(label)
-            else:
-                st.caption("No results.")
 
 
 if __name__ == '__main__':
